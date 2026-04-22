@@ -1,7 +1,3 @@
-Here’s a cleaner, **professional README version** of your file with unnecessary “note-style” sections removed, while keeping your structure intact and making it more concise and presentable:
-
----
-
 # YouTube RAG Chatbot
 
 A **Retrieval-Augmented Generation (RAG) system** that allows users to ask questions about any YouTube video using its transcript. The system retrieves relevant context and generates grounded responses using a Large Language Model.
@@ -255,9 +251,3 @@ The system therefore prioritizes a **clean backend architecture** while acknowle
 
 * Docker
 
----
-
-If you want, I can also:
-
-* Make it **more recruiter-friendly (portfolio style)**
-* Or add a **“Demo / Screenshots / Architecture diagram” section** which boosts impact a lot in interviews
