@@ -1,6 +1,6 @@
 # YouTube RAG Chatbot
 
-A **Retrieval-Augmented Generation (RAG) system** that allows users to ask questions about any YouTube video using its transcript. The system processes video transcripts, converts them into embeddings, retrieves relevant context, and generates accurate answers using a Large Language Model.
+A **Retrieval-Augmented Generation (RAG) system** that enables users to ask questions about any YouTube video using its transcript. The system retrieves relevant context from the video and generates accurate, grounded responses using a Large Language Model.
 
 ---
 
@@ -15,39 +15,37 @@ A **Retrieval-Augmented Generation (RAG) system** that allows users to ask quest
 7. Project Structure
 8. Installation & Setup
 9. How to Run
-10. System Design Decisions
-11. Limitations
-12. Future Improvements
-13. Tech Stack
+10. Deployment Architecture
+11. System Design Decisions
+12. Limitations
+13. Future Improvements
+14. Tech Stack
 
 ---
 
 ## Overview
 
-This project demonstrates an **end-to-end GenAI system** that combines:
+This project demonstrates an **end-to-end GenAI system** designed with a **modular and scalable architecture**, where:
 
-* Transcript extraction from YouTube videos
-* Semantic search using vector embeddings
-* Context-aware answer generation using LLMs
-* Backend API with FastAPI
-* Interactive UI using Streamlit
-* Containerization with Docker
+* A **FastAPI backend** handles the RAG pipeline
+* A **Streamlit frontend** provides an interactive chat interface
+* Both components can be deployed independently
 
-The system ensures that answers are **grounded strictly in the video content**, reducing hallucinations and improving reliability.
+The system ensures responses are **strictly grounded in the video transcript**, minimizing hallucinations.
 
 ---
 
 ## Features
 
 * Ask questions about any YouTube video
-* Transcript-based contextual answering (no hallucination outside context)
-* Automatic transcript extraction with fallback handling
+* Context-aware answers based only on transcript data
 * Semantic search using FAISS vector database
 * HuggingFace embeddings for efficient retrieval
 * LLM-powered answer generation
-* Clean Streamlit chat interface
-* FastAPI backend for scalable API design
-* Docker-ready for deployment
+* Clean chat interface with Streamlit
+* Modular backend API design
+* Docker-based containerization
+* Deployment-ready architecture
 
 ---
 
@@ -55,11 +53,11 @@ The system ensures that answers are **grounded strictly in the video content**, 
 
 1. User provides a YouTube video URL
 2. Extract video ID
-3. Fetch transcript using YouTube API
+3. Fetch transcript
 4. Split transcript into chunks
 5. Convert chunks into embeddings
-6. Store embeddings in FAISS vector database
-7. Retrieve relevant chunks for a query
+6. Store embeddings in vector database
+7. Retrieve relevant chunks for query
 8. Pass context + question to LLM
 9. Generate and return answer
 
@@ -67,62 +65,52 @@ The system ensures that answers are **grounded strictly in the video content**, 
 
 ## RAG Pipeline Architecture
 
-### 1. Transcript Extraction
+### Transcript Extraction
 
 * Uses `youtube-transcript-api`
 * Attempts English transcript first
-* Falls back to available language
+* Falls back to available transcript
 * Handles missing transcripts gracefully
 
 ---
 
-### 2. Text Splitting
+### Text Splitting
 
-* Uses `RecursiveCharacterTextSplitter`
+* `RecursiveCharacterTextSplitter`
 * Chunk size: 1000
 * Overlap: 200
-* Ensures semantic continuity between chunks
+* Preserves semantic continuity
 
 ---
 
-### 3. Embeddings
+### Embeddings
 
 * Model: `sentence-transformers/all-MiniLM-L6-v2`
-* Converts text chunks into dense vectors
-* Optimized for semantic similarity
+* Converts text into dense vector representations
 
 ---
 
-### 4. Vector Store
+### Vector Store
 
-* FAISS (Facebook AI Similarity Search)
-* Stores embeddings for fast retrieval
+* FAISS for similarity search
 * In-memory caching for processed videos
 
 ---
 
-### 5. Retriever
+### Retrieval
 
 * Similarity-based retrieval
-* Top-k results: `k = 4`
-* Fetches most relevant transcript chunks
+* Top-k = 4 relevant chunks
 
 ---
 
-### 6. LLM Chain
+### LLM Chain
 
-* Model: `openai/gpt-oss-20b` via HuggingFace
-
-* Prompt constraints:
+* Model: `openai/gpt-oss-20b` (via HuggingFace)
+* Strict prompt constraints:
 
   * Answer only from context
-  * Say “I don’t know” if insufficient context
-
-* Built using LangChain:
-
-  * `RunnableParallel`
-  * `PromptTemplate`
-  * `StrOutputParser`
+  * Say “I don’t know” if insufficient data
 
 ---
 
@@ -130,36 +118,17 @@ The system ensures that answers are **grounded strictly in the video content**, 
 
 ### Process Video
 
-* `POST /process_video`
-* Input:
+`POST /process_video`
 
-  ```json
-  {
-    "video_id": "youtube_url_or_id"
-  }
-  ```
-* Function:
-
-  * Extract transcript
-  * Create embeddings
-  * Store vector database
+Processes transcript and builds vector store.
 
 ---
 
 ### Ask Question
 
-* `POST /ask`
-* Input:
+`POST /ask`
 
-  ```json
-  {
-    "video_id": "youtube_url_or_id",
-    "question": "Your question here"
-  }
-  ```
-* Returns:
-
-  * Context-aware answer
+Returns context-aware answer based on transcript.
 
 ---
 
@@ -171,13 +140,12 @@ The Streamlit interface provides:
 * Processing feedback
 * Interactive chat interface
 * Message history tracking
-* Clean modern UI with sidebar explanation
 
 ### User Flow
 
 1. Paste YouTube link
-2. Click **Process Video**
-3. View video preview
+2. Process video
+3. Preview video
 4. Start chatting
 5. Ask questions / summaries / insights
 
@@ -185,165 +153,147 @@ The Streamlit interface provides:
 
 ## Project Structure
 
-```
-youtube-rag-chatbot/  
+```id="q2r9mv"
+youtube-rag-chatbot/
 
-├── api/
-│   └── routes.py  
-
-├── src/
-│   ├── ingest.py  
-│   ├── splitter.py  
-│   ├── embeddings.py  
-│   ├── retriever.py  
-│   ├── chains.py  
-
-├── notebooks/
-│   └── experimentation.ipynb  
-
-├── app.py                # Streamlit UI  
-├── main.py               # FastAPI backend  
-├── requirements.txt  
-├── requirements_streamlit.txt  
-├── .env  
-├── Dockerfile  
+├── backend/
+│   ├── Dockerfile
+│   ├── .dockerignore
+│   ├── requirements.txt
+│   ├── main.py
+│
+│   ├── src/
+│   │   ├── ingest.py
+│   │   ├── splitter.py
+│   │   ├── embeddings.py
+│   │   ├── retriever.py
+│   │   ├── chains.py
+│
+│   ├── api/
+│   │   ├── routes.py
+│
+│   ├── .env
+│
+├── frontend/
+│   ├── app.py
+│   ├── requirements.txt
+│
+├── .gitignore
+├── README.md
 ```
 
 ---
 
 ## Installation & Setup
 
-### 1. Clone Repository
+### Clone Repository
 
-```
+```id="r9flhm"
 git clone https://github.com/<your-username>/youtube-rag-chatbot.git
 cd youtube-rag-chatbot
 ```
 
 ---
 
-### 2. Create Virtual Environment
+### Backend Setup
 
-```
-python -m venv venv
-
-# macOS/Linux
-source venv/bin/activate  
-
-# Windows
-venv\Scripts\activate  
+```id="n1k3vp"
+cd backend
+pip install -r requirements.txt
 ```
 
 ---
 
-### 3. Install Dependencies
+### Frontend Setup
 
-Backend:
-
-```
+```id="v2x8qw"
+cd ../frontend
 pip install -r requirements.txt
-```
-
-Frontend:
-
-```
-pip install -r requirements_streamlit.txt
 ```
 
 ---
 
 ## How to Run
 
-### Run Backend (FastAPI)
+### Run Backend
 
-```
+```id="g7s4kp"
+cd backend
 uvicorn main:app --reload
-```
-
-API will be available at:
-
-```
-http://127.0.0.1:8000
 ```
 
 ---
 
-### Run Frontend (Streamlit)
+### Run Frontend
 
-```
+```id="z6dmq1"
+cd frontend
 streamlit run app.py
 ```
 
 ---
 
+## Deployment Architecture
+
+* Backend is containerized using Docker and deployed as an API service
+* Frontend is deployed separately as a Streamlit application
+* Communication happens via REST API
+
+---
+
 ## System Design Decisions
+
+### Modular Architecture
+
+* Clear separation between API and UI
+* Easier scalability and maintenance
+
+---
 
 ### In-Memory Vector Store
 
-* Uses dictionary-based caching:
-
-  ```
-  vector_store_cache = {}
-  ```
-* Avoids recomputation for already processed videos
-* Faster response time for repeated queries
+* Fast retrieval for processed videos
+* Avoids recomputation
+* Can be replaced with Redis or external DB
 
 ---
 
-### Stateless API Design
+### Prompt Grounding
 
-* Each request independently retrieves vector store
-* Ensures modular and scalable architecture
-
----
-
-### Prompt Engineering
-
-* Strict grounding:
-
-  * Prevents hallucinations
-  * Improves trustworthiness
+* Ensures answers are based strictly on transcript
+* Reduces hallucination
 
 ---
 
 ## Limitations
 
-* No persistent storage (data lost on restart)
-* No Redis caching (yet)
+* No persistent storage (data resets on restart)
 * Depends on transcript availability
-* Single-user in-memory design
+* Single-instance in-memory design
 * No authentication or rate limiting
 
 ---
 
 ## Future Improvements
 
-* Redis-based caching for scalability
+* Redis caching
 * Persistent vector database (Chroma / Pinecone)
-* Multi-video querying support
-* Streaming responses for better UX
-* Authentication and rate limiting
-* Deployment on cloud (Render / AWS)
-* UI improvements (history, saved chats)
+* Multi-video querying
+* Streaming responses
+* Authentication & rate limiting
+* CI/CD pipeline
+* UI enhancements
 
 ---
 
 ## Tech Stack
 
-### Languages & Libraries
-
-* Python
-* LangChain
-* HuggingFace Transformers
-* Sentence Transformers
-
 ### Backend
 
 * FastAPI
-
-### Vector Database
-
+* LangChain
 * FAISS
+* HuggingFace
 
 ### Frontend
 
@@ -352,4 +302,3 @@ streamlit run app.py
 ### Deployment
 
 * Docker
-
