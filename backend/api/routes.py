@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from src.ingest import get_transcript
 from src.splitter import split_text
 from src.embeddings import create_vector_store
 from src.retriever import get_retriever
@@ -15,6 +14,7 @@ vector_store_cache = {}
 
 class VideoRequest(BaseModel):
     video_id: str
+    transcript: str
 
 class QuestionRequest(BaseModel):
     video_id: str
@@ -35,7 +35,7 @@ def process_video(req: VideoRequest):
     if video_id in vector_store_cache:
         return {"message": "Video already processed"}
 
-    transcript = get_transcript(video_id)
+    transcript = req.transcript
 
     if not transcript:
         return {"error": "No transcript available"}

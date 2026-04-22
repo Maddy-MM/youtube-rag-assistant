@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import re
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 
 API_URL = "https://youtube-rag-backend-js1w.onrender.com" 
 
@@ -25,6 +26,23 @@ def get_video_title(video_id: str) -> str:
         return "YouTube Video"
     except:
         return "YouTube Video"
+
+def get_transcript(video_id: str) -> str:
+    try:
+        ytt_api = YouTubeTranscriptApi()
+
+        try:
+            transcript = ytt_api.fetch(video_id, languages=["en"])
+        except Exception:
+            transcript = ytt_api.fetch(video_id)
+
+        return " ".join(chunk.text for chunk in transcript)
+
+    except TranscriptsDisabled:
+        return ""
+    except Exception as e:
+        st.error(f"Transcript error: {e}")
+        return ""
 
 # -------------------------
 # Styles
@@ -291,18 +309,29 @@ if not st.session_state.video_processed:
             st.warning("Please enter a video")
         else:
             with st.spinner("Processing video..."):
-                res = requests.post(
-                    f"{API_URL}/process_video",
-                    json={"video_id": video_input}
-                ).json()
 
-                if "error" in res:
-                    st.error(res["error"])
+                video_id = extract_video_id(video_input)
+
+                transcript = get_transcript(video_id)
+
+                if not transcript:
+                    st.error("No transcript available")
                 else:
-                    st.session_state.video_processed = True
-                    st.session_state.video_id = video_input
-                    st.session_state.messages = []
-                    st.rerun()
+                    res = requests.post(
+                        f"{API_URL}/process_video",
+                        json={
+                            "video_id": video_id,
+                            "transcript": transcript
+                        }
+                    ).json()
+
+                    if "error" in res:
+                        st.error(res["error"])
+                    else:
+                        st.session_state.video_processed = True
+                        st.session_state.video_id = video_id
+                        st.session_state.messages = []
+                        st.rerun()
 
 # =========================
 # SCREEN 2 → CHAT UI
