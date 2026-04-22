@@ -331,6 +331,7 @@ if not st.session_state.video_processed:
                         st.session_state.video_processed = True
                         st.session_state.video_id = video_id
                         st.session_state.messages = []
+                        st.session_state.chat_started = False
                         st.rerun()
 
 # =========================
@@ -431,7 +432,6 @@ else:
     # CHAT INTERFACE
     else:
 
-        # Header row
         # Header row
         if st.button("↩  Upload a Different Video", use_container_width=True, key="new_video_btn"):
             st.session_state.video_processed = False
