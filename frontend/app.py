@@ -327,7 +327,7 @@ if not st.session_state.video_processed:
     if st.session_state.show_fallback:
         st.warning("Couldn't fetch transcript automatically.")
         st.markdown(
-            "Please go to [youtubetranscript.com](https://youtubetranscript.com), "
+            "Please go to [youtubetotranscript.com](https://youtubetotranscript.com/), "
             "find your video, and paste the transcript below."
         )
 
