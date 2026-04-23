@@ -59,6 +59,15 @@ if "video_id" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "show_fallback" not in st.session_state:
+    st.session_state.show_fallback = False
+
+if "fallback_video_id" not in st.session_state:
+    st.session_state.fallback_video_id = ""
+
+if "manual_transcript" not in st.session_state:
+    st.session_state.manual_transcript = ""
+
 # -------------------------
 # SIDE BAR
 # -------------------------
@@ -299,14 +308,55 @@ if not st.session_state.video_processed:
                     json={"video_id": video_input}
                 ).json()
 
-                if "error" in res:
-                    st.error(res["error"])
-                else:
-                    if "video_id" not in st.session_state or st.session_state.video_id != video_input:
-                        st.session_state.chat_started = False
+            if res.get("error") == "fallback":
+                # Just set the flag — actual UI is rendered outside this block
+                st.session_state.show_fallback = True
+                st.session_state.fallback_video_id = video_input
+            elif "error" in res:
+                st.error(res["error"])
+            else:
+                st.session_state.show_fallback = False
+                if "video_id" not in st.session_state or st.session_state.video_id != video_input:
+                    st.session_state.chat_started = False
+                st.session_state.video_processed = True
+                st.session_state.video_id = video_input
+                st.session_state.messages = []
+                st.rerun()
 
+    # Fallback UI lives OUTSIDE the button block so it survives reruns
+    if st.session_state.show_fallback:
+        st.warning("Couldn't fetch transcript automatically.")
+        st.markdown(
+            "Please go to [youtubetranscript.com](https://youtubetranscript.com), "
+            "find your video, and paste the transcript below."
+        )
+
+        st.session_state.manual_transcript = st.text_area(
+            "Paste transcript here",
+            height=200,
+            value=st.session_state.manual_transcript
+        )
+
+        if st.button("Submit Transcript", use_container_width=True):
+            if not st.session_state.manual_transcript.strip():
+                st.warning("Please paste the transcript first.")
+            else:
+                with st.spinner("Processing transcript..."):
+                    res2 = requests.post(
+                        f"{API_URL}/process_video_manual",
+                        json={
+                            "video_id": st.session_state.fallback_video_id,
+                            "transcript": st.session_state.manual_transcript
+                        }
+                    ).json()
+
+                if "error" in res2:
+                    st.error(res2["error"])
+                else:
+                    st.session_state.show_fallback = False
+                    st.session_state.manual_transcript = ""
                     st.session_state.video_processed = True
-                    st.session_state.video_id = video_input
+                    st.session_state.video_id = st.session_state.fallback_video_id
                     st.session_state.messages = []
                     st.rerun()
 
