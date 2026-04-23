@@ -1,5 +1,6 @@
 import os
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
 
 def get_transcript(video_id: str) -> tuple[str | None, str | None]:
 
@@ -17,27 +18,21 @@ def get_transcript(video_id: str) -> tuple[str | None, str | None]:
     except Exception as e:
         print("Direct fetch failed, trying proxy:", e)
 
-    # Layer 2: proxy fetch (legacy static API — supports proxies unlike the newer instance method)
+    # Layer 2: proxy fetch using v1.2.4 WebshareProxyConfig
     try:
-        proxy_url = (
-            f"http://{os.environ['WEBSHARE_USER']}:{os.environ['WEBSHARE_PASS']}"
-            f"@{os.environ['WEBSHARE_HOST']}:{os.environ['WEBSHARE_PORT']}"
+        ytt_api_proxy = YouTubeTranscriptApi(
+            proxy_config=WebshareProxyConfig(
+                proxy_username=os.environ["WEBSHARE_USER"],
+                proxy_password=os.environ["WEBSHARE_PASS"],
+            )
         )
-        proxies = {"https": proxy_url}
 
         try:
-            transcript = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                languages=["en"],
-                proxies=proxies
-            )
+            transcript = ytt_api_proxy.fetch(video_id, languages=["en"])
         except Exception:
-            transcript = YouTubeTranscriptApi.get_transcript(
-                video_id,
-                proxies=proxies
-            )
+            transcript = ytt_api_proxy.fetch(video_id)
 
-        text = " ".join(t["text"] for t in transcript)
+        text = " ".join(chunk.text for chunk in transcript)
         return text, None
 
     except Exception as e:
