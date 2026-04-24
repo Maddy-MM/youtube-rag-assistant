@@ -1,4 +1,4 @@
-# YouTube RAG Chatbot
+# YouTube RAG Assistant
 
 A **Retrieval-Augmented Generation (RAG) system** that allows users to ask questions about any YouTube video using its transcript. The system retrieves relevant context and generates grounded responses using a Large Language Model.
 
@@ -37,8 +37,8 @@ The system ensures responses remain **grounded in transcript data** to reduce ha
 
 ## Live Demo
 
-- **Backend API:** [YouTube RAG Chatbot - Backend (Render)](https://your-backend.onrender.com/)
-- **Frontend:** [YouTube RAG Chatbot - Frontend (Streamlit)](https://your-frontend.streamlit.app/)
+- **Backend API:** [YouTube RAG Assistant - Backend (Render)](https://youtube-rag-backend-js1w.onrender.com/)
+- **Frontend:** [YouTube RAG Assistant - Frontend (Streamlit)](https://youtube-rag-chatbot-jixvzdtnxgbinlnnr4hbqo.streamlit.app/)
 
 > **Note:** The backend is hosted on Render's free tier and may take 30–60 seconds to wake up on the first request.
 
@@ -54,7 +54,7 @@ The system ensures responses remain **grounded in transcript data** to reduce ha
 - Semantic search using FAISS
 - HuggingFace embeddings for retrieval
 - LLM-based answer generation
-- Streamlit chat interface
+- Streamlit chat interface with custom dark theme
 - Modular API-based backend
 - Docker support for deployment
 - UptimeRobot health monitoring to prevent cold starts on Render free tier
@@ -156,6 +156,7 @@ youtube-rag-chatbot/
 
 ├── backend/
 │   ├── Dockerfile
+│   ├── .dockerignore
 │   ├── requirements.txt
 │   ├── main.py
 │   ├── src/
@@ -170,8 +171,11 @@ youtube-rag-chatbot/
 │
 ├── frontend/
 │   ├── app.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── .streamlit/
+│       └── config.toml
 │
+├── .gitignore
 └── README.md
 ```
 
@@ -315,6 +319,7 @@ The chosen architecture keeps the stack clean and Python-native, degrades gracef
 ### Frontend
 
 - Streamlit
+- Custom dark theme via `.streamlit/config.toml` — YouTube red accent, deep navy backgrounds, consistent typography
 
 ### Deployment
 
