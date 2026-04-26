@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
 
-API_URL = "https://youtube-rag-backend-js1w.onrender.com"
-# API_URL = "http://127.0.0.1:8000"
+# API_URL = "https://youtube-rag-backend-js1w.onrender.com"
+API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(page_title="YTLens")
 
@@ -43,8 +43,6 @@ h1 a, h2 a, h3 a { display: none !important; }
 # -------------------------
 if "token" not in st.session_state:
     st.session_state.token = None
-if "auth_mode" not in st.session_state:
-    st.session_state.auth_mode = "login"
 if "chat_started" not in st.session_state:
     st.session_state.chat_started = False
 if "video_processed" not in st.session_state:
@@ -245,11 +243,11 @@ if not st.session_state.token:
     """, unsafe_allow_html=True)
 
     # Logo + branding
-    st.markdown(f"""
+    st.markdown("""
         <style>
-            div[data-testid="stMarkdown"] > div {{ width: 100% !important; }}
+            div[data-testid="stMarkdown"] > div { width: 100% !important; }
         </style>
-        <div style="width: 100%; text-align: center; margin-bottom: 2.2rem;">
+        <div style="width: 100%; text-align: center; margin-bottom: 1.2rem;">
             <div style="
                 display: inline-flex;
                 align-items: center;
@@ -259,7 +257,7 @@ if not st.session_state.token:
                 width: 68px;
                 height: 68px;
                 box-shadow: 0 8px 32px rgba(255,0,0,0.45);
-                margin-bottom: 1.1rem;
+                margin-bottom: 0.5rem;
             ">
                 <svg viewBox="0 0 24 24" width="32" height="32" fill="white">
                     <path d="M8 5.14v14l11-7-11-7z"/>
@@ -269,26 +267,26 @@ if not st.session_state.token:
                 color: #ffffff;
                 font-size: 1.9rem;
                 font-weight: 900;
-                margin: 0 0 0.2rem 0;
+                margin: 0;
                 letter-spacing: -0.03em;
                 line-height: 1;
             ">YT<span style="color: rgba(255,255,255,0.45); font-weight: 300;">Lens</span></h1>
-            <p style="
-                color: rgba(255,255,255,0.28);
-                font-size: 0.68rem;
-                letter-spacing: 0.12em;
-                text-transform: uppercase;
-                font-weight: 600;
-                margin: 0 0 0.15rem 0;
-            ">Video Intelligence Platform</p>
-            <p style="
-                color: rgba(255,100,100,0.6);
-                font-size: 0.68rem;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                font-weight: 500;
-                margin: 0;
-            ">{'Sign in to continue' if st.session_state.auth_mode == 'login' else 'Create your account'}</p>
+            <div style="
+                display: inline-block;
+                border: 1px solid rgba(255,255,255,0.18);
+                border-radius: 20px;
+                padding: 0.3rem 0.9rem;
+                margin-top: 0.2rem;
+            ">
+                <p style="
+                    color: rgba(255,255,255,0.38);
+                    font-size: 0.68rem;
+                    letter-spacing: 0.14em;
+                    text-transform: uppercase;
+                    font-weight: 600;
+                    margin: 0;
+                ">Video Intelligence Platform</p>
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -296,82 +294,31 @@ if not st.session_state.token:
     password = st.text_input("Password", placeholder="Enter your password", type="password", key="auth_password")
     st.markdown("<div style='height: 0.2rem'></div>", unsafe_allow_html=True)
 
-    if st.session_state.auth_mode == "login":
-        if st.button("Sign In", use_container_width=True):
-            if not username or not password:
-                st.warning("Please enter both username and password.")
+    if st.button("Sign In", use_container_width=True):
+        if not username or not password:
+            st.warning("Please enter both username and password.")
+        else:
+            with st.spinner("Signing in..."):
+                try:
+                    res = requests.post(
+                        f"{API_URL}/login",
+                        json={"username": username, "password": password}
+                    ).json()
+                except Exception:
+                    st.error("Could not reach the backend. Please try again.")
+                    st.stop()
+
+            if "access_token" in res:
+                st.session_state.token = res["access_token"]
+                st.rerun()
             else:
-                with st.spinner("Signing in..."):
-                    try:
-                        res = requests.post(
-                            f"{API_URL}/login",
-                            json={"username": username, "password": password}
-                        ).json()
-                    except Exception:
-                        st.error("Could not reach the backend. Please try again.")
-                        st.stop()
+                st.error(res.get("detail", "Login failed."))
 
-                if "access_token" in res:
-                    st.session_state.token = res["access_token"]
-                    st.rerun()
-                else:
-                    st.error(res.get("detail", "Login failed."))
-
-        st.markdown("""
-            <p style="text-align: center; margin-top: 1rem; color: rgba(255,255,255,0.28); font-size: 0.82rem;">
-                Don't have an account?
-                <a href="?auth_mode=register" target="_self"
-                   style="color: rgba(255,120,120,0.9); font-weight: 600; text-decoration: none;">
-                    Register
-                </a>
-            </p>
-        """, unsafe_allow_html=True)
-
-        params = st.query_params
-        if params.get("auth_mode") == "register":
-            st.query_params.clear()
-            st.session_state.auth_mode = "register"
-            st.rerun()
-
-    else:
-        if st.button("Create Account", use_container_width=True):
-            if not username or not password:
-                st.warning("Please enter both username and password.")
-            elif len(password) < 6:
-                st.warning("Password must be at least 6 characters.")
-            else:
-                with st.spinner("Creating account..."):
-                    try:
-                        res = requests.post(
-                            f"{API_URL}/register",
-                            json={"username": username, "password": password}
-                        ).json()
-                    except Exception:
-                        st.error("Could not reach the backend. Please try again.")
-                        st.stop()
-
-                if "message" in res:
-                    st.success("Account created! You can now sign in.")
-                    st.session_state.auth_mode = "login"
-                    st.rerun()
-                else:
-                    st.error(res.get("detail", "Registration failed."))
-
-        st.markdown("""
-            <p style="text-align: center; margin-top: 1rem; color: rgba(255,255,255,0.28); font-size: 0.82rem;">
-                Already have an account?
-                <a href="?auth_mode=login" target="_self"
-                   style="color: rgba(255,120,120,0.9); font-weight: 600; text-decoration: none;">
-                    Sign in
-                </a>
-            </p>
-        """, unsafe_allow_html=True)
-
-        params = st.query_params
-        if params.get("auth_mode") == "login":
-            st.query_params.clear()
-            st.session_state.auth_mode = "login"
-            st.rerun()
+    st.markdown("""
+        <p style="text-align: center; margin-top: 1rem; color: rgba(255,255,255,0.5); font-size: 0.82rem; letter-spacing: 0.03em;">
+            ⏱ First sign-in may take 30–60s while the backend wakes up
+        </p>
+    """, unsafe_allow_html=True)
 
     st.stop()
 
@@ -461,7 +408,7 @@ if not st.session_state.video_processed:
                     font-weight: 900;
                     letter-spacing: -0.02em;
                     line-height: 1;
-                ">YT<span style="color: rgba(255,255,255,0.4); font-weight: 300;">Lens</span></h1>
+                ">YT<span style="color: rgba(255,255,255,0.45); font-weight: 300;">Lens</span></h1>
                 <p style="
                     color: rgba(255,255,255,0.35);
                     margin: 0.3rem 0 0 0;
@@ -535,8 +482,8 @@ if not st.session_state.video_processed:
 
     st.markdown("""
         <p style="
-            color: rgba(255,255,255,0.3);
-            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.82rem;
             text-align: center;
             margin-top: 0.6rem;
             letter-spacing: 0.03em;
@@ -547,7 +494,7 @@ if not st.session_state.video_processed:
 
     # Fallback UI
     if st.session_state.show_fallback:
-        st.warning("Couldn't fetch transcript automatically.")
+        st.warning("Transcript unavailable — no captions found or access was blocked. Please paste it manually below.")
         st.markdown(
             "Please go to [youtubetotranscript.com](https://youtubetotranscript.com/), "
             "find your video, and paste the transcript below."
