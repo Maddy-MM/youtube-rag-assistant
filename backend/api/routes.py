@@ -57,13 +57,6 @@ def extract_video_id(url: str) -> str:
 def health():
     return {"status": "ok"}
 
-@router.post("/register")
-def register(req: AuthRequest, db: Session = Depends(get_db)):
-    if get_user(db, req.username):
-        raise HTTPException(status_code=400, detail="Username already taken")
-    create_user(db, req.username, req.password)
-    return {"message": "User registered successfully"}
-
 @router.post("/login")
 def login(req: AuthRequest, db: Session = Depends(get_db)):
     user = get_user(db, req.username)
