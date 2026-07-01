@@ -290,8 +290,35 @@ if not st.session_state.token:
         </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+        <div style="text-align: center; margin: 0.8rem 0 1.4rem 0;">
+            <span style="
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                border: 1px solid rgba(255,50,50,0.25);
+                background: rgba(255,0,0,0.06);
+                border-radius: 20px;
+                padding: 0.35rem 1rem;
+                color: rgba(255,255,255,0.55);
+                font-size: 0.78rem;
+                letter-spacing: 0.02em;
+            ">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#ff3333" stroke-width="2">
+                    <circle cx="7.5" cy="15.5" r="4.5"/>
+                    <path d="M10.6 12.4 19 4"/>
+                    <path d="M17 6l2 2"/>
+                    <path d="M14 9l2 2"/>
+                </svg>
+                Try it instantly — user: <span style="color:#ff3333; font-weight:600; font-family: monospace;">admin</span> · pass: <span style="color:#ff3333; font-weight:600; font-family: monospace;">admin123</span>
+            </span>
+        </div>
+    """, unsafe_allow_html=True)
+
     username = st.text_input("Username", placeholder="Enter your username", key="auth_username")
     password = st.text_input("Password", placeholder="Enter your password", type="password", key="auth_password")
+
+
     st.markdown("<div style='height: 0.2rem'></div>", unsafe_allow_html=True)
 
     if st.button("Sign In", use_container_width=True):
