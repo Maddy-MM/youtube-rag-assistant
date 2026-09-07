@@ -24,5 +24,5 @@ WORKDIR /app/backend
 # Expose port (Render uses 10000)
 EXPOSE 10000
 
-# Run FastAPI app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+# Run FastAPI app with dynamic port binding
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]

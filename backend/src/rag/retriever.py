@@ -1,14 +1,18 @@
+import os
 from langchain_community.retrievers import BM25Retriever
-from sentence_transformers import CrossEncoder
 
-# Lazy-loaded singleton — reranker model is ~110MB, don't reload per request
+# Lazy-loaded singleton — only loaded if ENABLE_RERANKER is enabled
 _reranker = None
 
 
-def _get_reranker() -> CrossEncoder:
+def _get_reranker():
     global _reranker
     if _reranker is None:
-        _reranker = CrossEncoder("BAAI/bge-reranker-base")
+        # Lazy import so PyTorch / torch C-extensions are never loaded unless explicitly requested
+        from sentence_transformers import CrossEncoder
+        # Use a lightweight cross-encoder (35MB vs 1.1GB) to avoid OOM crashes
+        model_name = os.environ.get("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-2-v2")
+        _reranker = CrossEncoder(model_name)
     return _reranker
 
 
@@ -55,18 +59,25 @@ def get_retriever(vector_store, docs, fetch_k: int = 20) -> HybridRetriever:
 
 
 def rerank(question: str, docs: list, top_k: int = 5) -> list:
-    """Re-scores the fused candidate list against the specific question with
-    a cross-encoder — catches cases where RRF's fused ranking still surfaces
-    a diverse-but-less-relevant chunk over a directly relevant one."""
+    """Re-scores candidates using a lightweight cross-encoder if enabled.
+    Defaults to dense Pinecone ranking on 512MB memory-constrained servers."""
     if not docs:
         return docs
 
-    reranker = _get_reranker()
-    pairs = [(question, doc.page_content) for doc in docs]
-    scores = reranker.predict(pairs)
+    # Check if neural reranking is enabled (default false for 512MB RAM instances)
+    enable_reranker = os.environ.get("ENABLE_RERANKER", "false").lower() in ("1", "true", "yes")
+    if not enable_reranker:
+        return docs[:top_k]
 
-    ranked = sorted(zip(docs, scores), key=lambda pair: pair[1], reverse=True)
-    return [doc for doc, _ in ranked[:top_k]]
+    try:
+        reranker = _get_reranker()
+        pairs = [(question, doc.page_content) for doc in docs]
+        scores = reranker.predict(pairs)
+        ranked = sorted(zip(docs, scores), key=lambda pair: pair[1], reverse=True)
+        return [doc for doc, _ in ranked[:top_k]]
+    except Exception as e:
+        print(f"Reranking skipped (falling back to dense Pinecone rank): {e}")
+        return docs[:top_k]
 
 def get_dense_retriever(vector_store, fetch_k: int = 20):
     """Production retrieval path — dense embedding search only, followed by

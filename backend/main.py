@@ -49,12 +49,15 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    # Pre-warm the reranker model so the first user prompt is instant
-    try:
-        _get_reranker()
-        print("Reranker model warmed up successfully.")
-    except Exception as e:
-        print(f"Warning: Reranker warm-up failed: {e}")
+    # Only pre-warm neural reranker if explicitly enabled (saves ~800MB RAM on 512MB hosts)
+    if os.environ.get("ENABLE_RERANKER", "false").lower() in ("1", "true", "yes"):
+        try:
+            _get_reranker()
+            print("Reranker model warmed up successfully.")
+        except Exception as e:
+            print(f"Warning: Reranker warm-up skipped: {e}")
+    else:
+        print("Running in memory-optimized mode (local neural reranker inactive, using Pinecone dense rank).")
 
     yield  # Application runs here
 
