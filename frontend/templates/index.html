@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block body %}
+<!-- ============================== -->
+<!-- SVG Symbol Definitions         -->
+<!-- ============================== -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7-11-7z"/></symbol>
+    <symbol id="icon-send" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></symbol>
+    <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-video" viewBox="0 0 24 24"><rect x="2" y="4" width="15" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17 8l5-3v14l-5-3V8z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 21a8 8 0 00-16 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-bot" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/><path d="M12 2v4M4 8l-2-2M20 8l2-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" fill="none" stroke="currentColor" stroke-width="2"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="2 17 12 22 22 17" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="2 12 12 17 22 12" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-search-check" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2"/><polyline points="8 11 10 13 14 9" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="icon-waveform" viewBox="0 0 24 24"><path d="M3 10v4M7 6v12M11 3v18M15 7v10M19 10v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="icon-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="icon-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+</svg>
+
+<!-- ============================== -->
+<!-- Toast Container                -->
+<!-- ============================== -->
+<div id="toast-container"></div>
+
+<!-- ============================== -->
+<!-- SCREEN 0: STUDIO CONSOLE       -->
+<!-- ============================== -->
+<div id="screen-login" class="screen screen--active">
+    <div class="studio-viewport" id="studio-viewport">
+        <!-- Interactive Cinematic Bokeh & Projector Canvas -->
+        <canvas id="studio-particles-canvas" class="studio-canvas"></canvas>
+
+        <!-- Ambient Atmospheric Lighting & Volumetric Beams -->
+        <div class="studio-ambient-glow"></div>
+        <div class="studio-projector-beam"></div>
+        <div class="studio-grid-overlay"></div>
+
+        <!-- Centered Hardware/Studio Console Deck with Underglow -->
+        <div class="studio-console-wrapper">
+            <div class="studio-console__underglow"></div>
+            <div class="studio-console" id="studio-console-card">
+                <!-- Cursor-Tracking Dynamic Spotlight Border -->
+                <div class="studio-console__spotlight"></div>
+
+                <!-- Top Subtle Rim Light Accent -->
+                <div class="studio-console__rim"></div>
+
+            <!-- Left Panel: AI Video Monitor & Telemetry -->
+            <div class="studio-monitor">
+                <!-- Monitor Top Bar -->
+                <div class="monitor-header">
+                    <div class="monitor-rec">
+                        <span class="rec-dot"></span>
+                        <span class="rec-label">RAG ENGINE ACTIVE</span>
+                    </div>
+                    <div class="monitor-badges">
+                        <span class="stream-badge">4K 60FPS</span>
+                        <span class="stream-badge">PCM 48kHz</span>
+                    </div>
+                    <span class="monitor-timecode" id="monitor-timecode">04:18 / 18:42</span>
+                </div>
+
+                <!-- Cinematic Soundwave Visualizer Screen (Organic Rhythm & Chapter Milestones) -->
+                <div class="cinematic-visualizer-screen" id="cinematic-visualizer-screen">
+                    <div class="screen-glare"></div>
+                    <div class="screen-scanlines"></div>
+                    <div class="visualizer-ambient-aura"></div>
+
+                    <div class="visualizer-content">
+                        <!-- 28-Bar Organic Fluid Waveform Visualizer -->
+                        <div class="visualizer-bars-wrapper">
+                            <div class="visualizer-bars">
+                                <span class="vbar" style="--h: 30%; --d: 0.05s"></span>
+                                <span class="vbar" style="--h: 56%; --d: 0.22s"></span>
+                                <span class="vbar" style="--h: 84%; --d: 0.12s"></span>
+                                <span class="vbar" style="--h: 46%; --d: 0.38s"></span>
+                                <span class="vbar" style="--h: 94%; --d: 0.08s"></span>
+                                <span class="vbar" style="--h: 68%; --d: 0.28s"></span>
+                                <span class="vbar" style="--h: 38%; --d: 0.18s"></span>
+                                <span class="vbar" style="--h: 88%; --d: 0.32s"></span>
+                                <span class="vbar" style="--h: 98%; --d: 0.15s"></span>
+                                <span class="vbar" style="--h: 62%; --d: 0.42s"></span>
+                                <span class="vbar" style="--h: 44%; --d: 0.1s"></span>
+                                <span class="vbar" style="--h: 82%; --d: 0.26s"></span>
+                                <span class="vbar" style="--h: 72%; --d: 0.35s"></span>
+                                <span class="vbar" style="--h: 96%; --d: 0.14s"></span>
+                                <span class="vbar" style="--h: 54%; --d: 0.4s"></span>
+                                <span class="vbar" style="--h: 86%; --d: 0.2s"></span>
+                                <span class="vbar" style="--h: 92%; --d: 0.16s"></span>
+                                <span class="vbar" style="--h: 66%; --d: 0.3s"></span>
+                                <span class="vbar" style="--h: 40%; --d: 0.24s"></span>
+                                <span class="vbar" style="--h: 78%; --d: 0.34s"></span>
+                                <span class="vbar" style="--h: 95%; --d: 0.11s"></span>
+                                <span class="vbar" style="--h: 60%; --d: 0.44s"></span>
+                                <span class="vbar" style="--h: 36%; --d: 0.17s"></span>
+                                <span class="vbar" style="--h: 80%; --d: 0.29s"></span>
+                                <span class="vbar" style="--h: 90%; --d: 0.13s"></span>
+                                <span class="vbar" style="--h: 52%; --d: 0.36s"></span>
+                                <span class="vbar" style="--h: 74%; --d: 0.21s"></span>
+                                <span class="vbar" style="--h: 42%; --d: 0.33s"></span>
+                            </div>
+                        </div>
+
+                        <!-- Live Grounding Subtitle Ticker -->
+                        <div class="transcript-ticker">
+                            <span class="ticker-dot">●</span>
+                            <span class="ticker-text" id="ticker-text">Grounding video transcripts with 1536-dim vector indexing…</span>
+                        </div>
+                    </div>
+
+                    <!-- Video Scrub Bar with Chapter Milestones -->
+                    <div class="video-scrub-bar" id="video-scrub-bar">
+                        <span class="scrub-chapter" style="left: 18%" title="03:20 Ingest"></span>
+                        <span class="scrub-chapter" style="left: 42%" title="07:50 Vectors"></span>
+                        <span class="scrub-chapter" style="left: 68%" title="12:40 Pinecone"></span>
+                        <span class="scrub-chapter" style="left: 88%" title="16:30 Rerank"></span>
+                        <div class="video-scrub-progress" id="scrub-progress" style="width: 23%"></div>
+                        <div class="video-scrub-handle" id="scrub-handle" style="left: 23%"></div>
+                    </div>
+                </div>
+
+                <!-- 3 Sleek Product Capability Highlight Cards (Replaces rigid number boxes) -->
+                <div class="capability-deck">
+                    <div class="capability-card">
+                        <div class="capability-card__icon-wrap">
+                            <svg width="15" height="15" class="capability-card__icon"><use href="#icon-waveform"/></svg>
+                        </div>
+                        <div class="capability-card__body">
+                            <span class="capability-card__title">1536-Dim Grounding</span>
+                            <span class="capability-card__desc">Syncs audio to exact video seconds</span>
+                        </div>
+                    </div>
+
+                    <div class="capability-card">
+                        <div class="capability-card__icon-wrap">
+                            <svg width="15" height="15" class="capability-card__icon"><use href="#icon-layers"/></svg>
+                        </div>
+                        <div class="capability-card__body">
+                            <span class="capability-card__title">Neural Reranking</span>
+                            <span class="capability-card__desc">Cross-encoder with 92%+ precision</span>
+                        </div>
+                    </div>
+
+                    <div class="capability-card">
+                        <div class="capability-card__icon-wrap">
+                            <svg width="15" height="15" class="capability-card__icon"><use href="#icon-compass"/></svg>
+                        </div>
+                        <div class="capability-card__body">
+                            <span class="capability-card__title">Timecoded Citations</span>
+                            <span class="capability-card__desc">Direct jump-links to key moments</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Authentication Terminal -->
+            <div class="studio-auth">
+                <div class="studio-auth__brand">
+                    <div class="studio-auth__logo">
+                        <svg width="20" height="20" fill="white"><use href="#icon-play"/></svg>
+                    </div>
+                    <div class="studio-auth__brand-text">
+                        <span class="brand-title">YT<span class="brand-title--muted">Lens</span></span>
+                        <span class="brand-badge">STUDIO v2.0</span>
+                    </div>
+                </div>
+
+                <div class="studio-auth__header">
+                    <h2 class="auth-heading">Sign In</h2>
+                    <p class="auth-desc">Authenticate to access video intelligence</p>
+                </div>
+
+                <form id="login-form" autocomplete="on" class="auth-form">
+                    <div class="console-input">
+                        <label class="console-input__label" for="login-username">USERNAME</label>
+                        <div class="console-input__wrap">
+                            <span class="console-input__icon">
+                                <svg width="15" height="15"><use href="#icon-user"/></svg>
+                            </span>
+                            <input class="console-input__field" type="text" id="login-username"
+                                   placeholder="Enter username" autocomplete="username" required>
+                        </div>
+                    </div>
+
+                    <div class="console-input">
+                        <label class="console-input__label" for="login-password">PASSWORD</label>
+                        <div class="console-input__wrap">
+                            <span class="console-input__icon">
+                                <svg width="15" height="15"><use href="#icon-lock"/></svg>
+                            </span>
+                            <input class="console-input__field" type="password" id="login-password"
+                                   placeholder="Enter password" autocomplete="current-password" required>
+                            <button type="button" class="console-input__toggle" id="toggle-password-btn" title="Toggle visibility">
+                                <svg width="15" height="15" class="eye-open"><use href="#icon-eye"/></svg>
+                                <svg width="15" height="15" class="eye-closed" style="display:none"><use href="#icon-eye-off"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="console-btn" type="submit" id="login-btn">
+                        <span class="login__btn-text">Initialize Session <span class="btn-keyhint">↵</span></span>
+                        <span class="login__btn-loader" hidden>
+                            <span class="spinner"></span> Authenticating…
+                        </span>
+                    </button>
+                </form>
+
+                <!-- Unified Enterprise Security Pill -->
+                <div class="console-note" id="auth-enterprise-pill">
+                    <svg width="13" height="13" class="note-lock"><use href="#icon-lock"/></svg>
+                    <span>End-to-End JWT Encryption · Powered by Pinecone & Neural Rerank</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ============================== -->
+<!-- SCREEN 1: VIDEO INPUT          -->
+<!-- ============================== -->
+<div id="screen-video" class="screen">
+    <div class="video">
+        <!-- Header -->
+        <div class="video__header">
+            <div class="video__header-logo">
+                <div class="video__header-icon">
+                    <svg width="18" height="18" fill="white"><use href="#icon-play"/></svg>
+                </div>
+                <div>
+                    <h1 class="video__header-title">YT<span class="video__header-title--muted">Lens</span></h1>
+                    <p class="video__header-sub">AI-Powered Video Intelligence</p>
+                </div>
+            </div>
+            <button class="video__logout-btn" id="video-logout-btn" title="Sign out">
+                <svg width="18" height="18"><use href="#icon-logout"/></svg>
+            </button>
+        </div>
+
+        <!-- Input Card -->
+        <div class="video__card">
+            <div class="video__card-indicator">
+                <span class="pulse-dot"></span>
+                <span>Load a Video</span>
+            </div>
+
+            <form id="video-form">
+                <div class="video__input-group">
+                    <label class="video__label" for="video-input">YouTube URL or Video ID</label>
+                    <input class="video__input" type="text" id="video-input"
+                           placeholder="Paste YouTube link here…" required>
+                </div>
+                <button class="video__btn" type="submit" id="analyze-btn">
+                    <span class="video__btn-text">Analyse Video</span>
+                    <span class="video__btn-loader" hidden>
+                        <span class="spinner"></span> Analysing…
+                    </span>
+                </button>
+            </form>
+
+            <p class="video__secured">🔒 Your session is secured with JWT authentication</p>
+        </div>
+
+        <!-- Fallback Section -->
+        <div id="fallback-section" class="video__fallback" hidden>
+            <div class="video__fallback-alert">
+                <strong>Transcript unavailable</strong> — no captions found or access was blocked.
+            </div>
+            <p class="video__fallback-instructions">
+                Go to <a href="https://youtubetotranscript.com/" target="_blank" rel="noopener">youtubetotranscript.com</a>,
+                find your video, and paste the transcript below.
+            </p>
+            <textarea id="fallback-textarea" class="video__fallback-textarea"
+                      placeholder="Paste transcript here…" rows="6"></textarea>
+            <button class="video__btn video__btn--secondary" id="fallback-btn">
+                <span class="video__btn-text">Submit Transcript</span>
+                <span class="video__btn-loader" hidden>
+                    <span class="spinner"></span> Processing…
+                </span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================== -->
+<!-- SCREEN 2: CHAT INTERFACE       -->
+<!-- ============================== -->
+<div id="screen-chat" class="screen">
+    <div class="chat">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar__inner">
+                <!-- Sidebar Header -->
+                <div class="sidebar__header">
+                    <div class="sidebar__logo">
+                        <div class="sidebar__logo-icon">
+                            <svg width="14" height="14" fill="white"><use href="#icon-play"/></svg>
+                        </div>
+                        <div>
+                            <span class="sidebar__logo-text">YT<span class="sidebar__logo-text--muted">Lens</span></span>
+                            <span class="sidebar__logo-sub">Video Intelligence</span>
+                        </div>
+                    </div>
+                    <button class="sidebar__close" id="sidebar-close" title="Close sidebar">
+                        <svg width="20" height="20"><use href="#icon-close"/></svg>
+                    </button>
+                </div>
+
+                <!-- Video Info -->
+                <div class="sidebar__video">
+                    <div class="sidebar__thumbnail-wrap">
+                        <img id="sidebar-thumbnail" class="sidebar__thumbnail" src="" alt="Video thumbnail">
+                        <span class="sidebar__badge">
+                            <span class="pulse-dot pulse-dot--sm"></span> Ready
+                        </span>
+                    </div>
+                    <h2 id="sidebar-title" class="sidebar__title">Video Title</h2>
+                    <a id="sidebar-youtube-link" class="sidebar__link" href="#" target="_blank" rel="noopener">
+                        <svg width="14" height="14"><use href="#icon-external"/></svg>
+                        Open on YouTube
+                    </a>
+                </div>
+
+                <!-- Actions -->
+                <div class="sidebar__actions">
+                    <button class="sidebar__action-btn" id="switch-video-btn">
+                        <svg width="16" height="16"><use href="#icon-video"/></svg>
+                        Analyse Different Video
+                    </button>
+                </div>
+
+                <!-- Footer -->
+                <div class="sidebar__footer">
+                    <button class="sidebar__action-btn sidebar__action-btn--danger" id="logout-btn">
+                        <svg width="16" height="16"><use href="#icon-logout"/></svg>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay (mobile) -->
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Top Bar -->
+            <div class="topbar">
+                <button class="topbar__menu" id="sidebar-toggle" title="Toggle sidebar">
+                    <svg width="22" height="22"><use href="#icon-menu"/></svg>
+                </button>
+                <div class="topbar__title">
+                    <span class="pulse-dot pulse-dot--sm"></span>
+                    <span>YTLens Chat</span>
+                </div>
+                <div class="topbar__spacer"></div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="messages" id="messages-area">
+                <div class="messages__container" id="messages-container">
+                    <!-- Welcome State -->
+                    <div id="welcome-state" class="welcome">
+                        <div class="welcome__icon">
+                            <svg width="36" height="36" fill="var(--accent)"><use href="#icon-play"/></svg>
+                        </div>
+                        <h2 class="welcome__title">Ready to explore this video</h2>
+                        <p class="welcome__subtitle">Ask questions, get summaries, or discover insights from the transcript</p>
+                        <div class="welcome__suggestions">
+                            <button class="welcome__chip" data-question="Summarize this video in 3 key points">Summarize in 3 points</button>
+                            <button class="welcome__chip" data-question="What are the main topics discussed?">Main topics discussed</button>
+                            <button class="welcome__chip" data-question="What is the most important takeaway?">Key takeaway</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Bar -->
+            <div class="input-bar">
+                <div class="input-bar__container">
+                    <form id="input-form" class="input-bar__form">
+                        <textarea id="chat-input" class="input-bar__textarea"
+                                  placeholder="Ask anything about this video…"
+                                  rows="1"></textarea>
+                        <button type="submit" class="input-bar__send" id="send-btn" title="Send message" disabled>
+                            <svg width="20" height="20" fill="white"><use href="#icon-send"/></svg>
+                        </button>
+                        <button type="button" class="input-bar__stop" id="stop-btn" title="Stop generating" hidden>
+                            <svg width="18" height="18" fill="white"><use href="#icon-stop"/></svg>
+                        </button>
+                    </form>
+                </div>
+                <p class="input-bar__disclaimer">Answers are grounded in the video transcript. Always verify important information.</p>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

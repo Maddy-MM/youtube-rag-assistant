@@ -10,10 +10,13 @@ st.set_page_config(page_title="YTLens")
 # Helpers
 # -------------------------
 def extract_video_id(url: str) -> str:
+    url = url.strip()
     if "v=" in url:
         return url.split("v=")[-1].split("&")[0]
     elif "youtu.be/" in url:
         return url.split("youtu.be/")[-1].split("?")[0]
+    elif "shorts/" in url:
+        return url.split("shorts/")[-1].split("?")[0].split("/")[0]
     return url
 
 def get_video_title(video_id: str) -> str:
@@ -23,11 +26,61 @@ def get_video_title(video_id: str) -> str:
             timeout=5
         )
         return res.json().get("title", "YouTube Video")
-    except:
+    except Exception:
         return "YouTube Video"
 
 def auth_headers() -> dict:
     return {"Authorization": f"Bearer {st.session_state.token}"}
+
+def _strip_sse_field(raw_line: str, prefix: str) -> str:
+    value = raw_line[len(prefix):]
+    return value[1:] if value.startswith(" ") else value
+
+def stream_ask(video_id: str, question: str):
+    """Reads the backend's SSE stream from /ask and yields decoded tokens
+    as they arrive, so the UI can render them progressively via st.write_stream."""
+    try:
+        with requests.post(
+            f"{API_URL}/ask",
+            json={"video_id": video_id, "question": question},
+            headers=auth_headers(),
+            stream=True,
+            timeout=60,
+        ) as res:
+            content_type = res.headers.get("content-type", "")
+
+            if "text/event-stream" not in content_type:
+                # Backend returned JSON error or non-streaming response
+                try:
+                    data = res.json()
+                    err = data.get("error", data.get("detail", "Something went wrong."))
+                except Exception:
+                    err = f"Server error ({res.status_code})"
+                yield err
+                return
+
+            data_lines = []
+            event_type = None
+
+            for raw_line in res.iter_lines(decode_unicode=True):
+                if raw_line is None:
+                    continue
+
+                if raw_line == "":
+                    if event_type == "done":
+                        return
+                    if data_lines:
+                        yield "\n".join(data_lines)
+                    data_lines = []
+                    event_type = None
+                    continue
+
+                if raw_line.startswith("event:"):
+                    event_type = _strip_sse_field(raw_line, "event:")
+                elif raw_line.startswith("data:"):
+                    data_lines.append(_strip_sse_field(raw_line, "data:"))
+    except requests.exceptions.RequestException as e:
+        yield f"Connection error: Could not reach the backend ({e})."
 
 # -------------------------
 # Global style — hide anchor icons
@@ -157,7 +210,7 @@ with st.sidebar:
         <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 1.8rem;">
             <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">FastAPI</span>
             <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">LangChain</span>
-            <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">FAISS</span>
+            <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">Pinecone</span>
             <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">HuggingFace</span>
             <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">Streamlit</span>
             <span style="background:rgba(255,0,0,0.12); border:1px solid rgba(255,0,0,0.25); border-radius:6px; padding:0.3rem 0.7rem; color:#ffffff; font-size:0.75rem; font-weight:500; letter-spacing:0.03em;">JWT Auth</span>
@@ -487,17 +540,33 @@ if not st.session_state.video_processed:
             st.warning("Please enter a video URL or ID.")
         else:
             with st.spinner("Analysing video..."):
-                res = requests.post(
-                    f"{API_URL}/process_video",
-                    json={"video_id": video_input},
-                    headers=auth_headers()
-                ).json()
+                try:
+                    resp = requests.post(
+                        f"{API_URL}/process_video",
+                        json={"video_id": video_input},
+                        headers=auth_headers(),
+                        timeout=30,
+                    )
+                    res = resp.json()
+                except requests.exceptions.RequestException:
+                    st.error("Could not reach the backend. Please try again.")
+                    st.stop()
+                except Exception:
+                    st.error("Invalid response from the backend. Please try again.")
+                    st.stop()
+
+            if resp.status_code == 401:
+                st.error("Your session has expired. Please sign in again.")
+                st.session_state.token = None
+                st.rerun()
 
             if res.get("error") == "fallback":
                 st.session_state.show_fallback = True
                 st.session_state.fallback_video_id = video_input
             elif "error" in res:
                 st.error(res["error"])
+            elif "detail" in res:
+                st.error(res["detail"])
             else:
                 st.session_state.show_fallback = False
                 if st.session_state.video_id != video_input:
@@ -538,17 +607,33 @@ if not st.session_state.video_processed:
                 st.warning("Please paste the transcript first.")
             else:
                 with st.spinner("Processing transcript..."):
-                    res2 = requests.post(
-                        f"{API_URL}/process_video_manual",
-                        json={
-                            "video_id": st.session_state.fallback_video_id,
-                            "transcript": st.session_state.manual_transcript
-                        },
-                        headers=auth_headers()
-                    ).json()
+                    try:
+                        resp2 = requests.post(
+                            f"{API_URL}/process_video_manual",
+                            json={
+                                "video_id": st.session_state.fallback_video_id,
+                                "transcript": st.session_state.manual_transcript
+                            },
+                            headers=auth_headers(),
+                            timeout=30,
+                        )
+                        res2 = resp2.json()
+                    except requests.exceptions.RequestException:
+                        st.error("Could not reach the backend. Please try again.")
+                        st.stop()
+                    except Exception:
+                        st.error("Invalid response from the backend. Please try again.")
+                        st.stop()
+
+                if resp2.status_code == 401:
+                    st.error("Your session has expired. Please sign in again.")
+                    st.session_state.token = None
+                    st.rerun()
 
                 if "error" in res2:
                     st.error(res2["error"])
+                elif "detail" in res2:
+                    st.error(res2["detail"])
                 else:
                     st.session_state.show_fallback = False
                     st.session_state.manual_transcript = ""
@@ -570,12 +655,7 @@ else:
     if not st.session_state.chat_started:
 
         vid = extract_video_id(st.session_state.video_id)
-
-        try:
-            title = get_video_title(vid)
-        except:
-            title = "YouTube Video"
-
+        title = get_video_title(vid)
         thumb = f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
 
         col1, col2, col3 = st.columns([0.7, 2.6, 0.7])
@@ -728,19 +808,10 @@ else:
             with chat_container:
                 st.chat_message("user").write(user_input)
 
-                with st.spinner("Analysing..."):
-                    res = requests.post(
-                        f"{API_URL}/ask",
-                        json={
-                            "video_id": st.session_state.video_id,
-                            "question": user_input
-                        },
-                        headers=auth_headers()
-                    ).json()
-
-                    answer = res.get("answer", "Error")
-
-                st.chat_message("assistant").write(answer)
+                with st.chat_message("assistant"):
+                    answer = st.write_stream(
+                        stream_ask(st.session_state.video_id, user_input)
+                    )
 
             st.session_state.messages.append(("user", user_input))
             st.session_state.messages.append(("bot", answer))

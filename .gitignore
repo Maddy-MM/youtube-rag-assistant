@@ -12,8 +12,14 @@ huggingface/
 
 .env
 .env.*
+!.env.example
+!backend/.env.example
 
 .git/
 
 notebooks/
 *.ipynb
+
+*.db
+*.sqlite
+*.sqlite3

@@ -1,6 +1,6 @@
 # YTLens
 
-A **Retrieval-Augmented Generation (RAG) system** that allows users to ask questions about any YouTube video using its transcript. The system retrieves relevant context and generates grounded responses using a Large Language Model.
+A **Retrieval-Augmented Generation (RAG) system** that allows users to ask questions about any YouTube video using its transcript. The system retrieves relevant context and generates grounded, streamed responses using a Large Language Model.
 
 ---
 
@@ -10,27 +10,28 @@ A **Retrieval-Augmented Generation (RAG) system** that allows users to ask quest
 2. Features
 3. Project Workflow
 4. RAG Pipeline Architecture
-5. Authentication
-6. API Endpoints
-7. Frontend
-8. Project Structure
-9. Installation & Setup
-10. How to Run
-11. Deployment Architecture
-12. Transcript Fetching Strategy
-13. Current Limitations & Tradeoffs
-14. Future Improvements
-15. Tech Stack
+5. Retrieval Evaluation
+6. Authentication
+7. API Endpoints
+8. Frontend
+9. Project Structure
+10. Installation & Setup
+11. How to Run
+12. Deployment Architecture
+13. Transcript Fetching Strategy
+14. Current Limitations & Tradeoffs
+15. Future Improvements
+16. Tech Stack
 
 ---
 
 ## Overview
 
-This project implements an **end-to-end GenAI pipeline** with a modular architecture:
+This project implements an **end-to-end GenAI pipeline** with a unified architecture:
 
-- **FastAPI backend** handles the RAG pipeline and authentication
-- **Streamlit frontend** provides a JWT-authenticated chat interface
-- Components are independently deployable
+- **FastAPI backend & server** handles the RAG pipeline, authentication, and serves the frontend templates and static assets
+- **Jinja2 + HTML/CSS/JS frontend** provides a responsive, Claude-inspired chat interface with token-by-token streaming and YouTube dark branding
+- **High-speed package management with `uv`** for lightning-fast local installations and optimized Docker builds
 
 The system ensures responses remain **grounded in transcript data** to reduce hallucinations.
 
@@ -38,31 +39,26 @@ The system ensures responses remain **grounded in transcript data** to reduce ha
 
 ## Live Demo
 
-- **Backend API:** [YTLens - Backend (Render)](https://youtube-rag-backend-js1w.onrender.com/)
-- **Frontend:** [YTLens - Frontend (Streamlit)](https://youtube-rag-chatbot-jixvzdtnxgbinlnnr4hbqo.streamlit.app/)
+- **Application:** [ytlens.madhavmakwana.dev](https://ytlens.madhavmakwana.dev)
 
-> **Note:** The backend is hosted on Render's free tier and may take 30–60 seconds to wake up on the first request.
-
-**Demo credentials:**
-
-- Username: `admin`
-- Password: `admin123`
+> **Note:** The application is hosted on Render and may take 30–60 seconds to wake up on the first request if the container is sleeping.
 
 ---
 
 ## Features
 
-- JWT-authenticated access — login required before using the app
+- JWT-authenticated access — protected endpoints require login
 - Ask questions about any YouTube video
 - Two-layer transcript fetching with graceful degradation
 - Residential proxy support via Webshare for cloud IP bypass — skipped automatically if credentials are not configured, adding zero latency
 - Manual transcript paste fallback when auto-fetch fails
-- Context-aware responses using MMR retrieval and BGE embeddings
-- Semantic search using FAISS
-- LLM-based answer generation via HuggingFace Inference API
-- Streamlit chat interface with custom dark theme and YTLens branding
-- Modular API-based backend
-- Docker support for deployment
+- Persistent, namespaced vector storage via Pinecone — processed videos survive backend restarts and redeploys
+- Cross-encoder reranking on top of dense retrieval, validated against a labeled evaluation set rather than assumed
+- Dual chat model support — easily switch between OpenAI (e.g., `gpt-5-nano`) and free open-source models via Hugging Face
+- Streaming LLM responses (SSE) — answers render token-by-token instead of blocking on full generation
+- Claude-inspired two-pane chat interface with YouTube dark branding
+- Modular API-based backend serving Jinja2 templates and static assets
+- Unified Docker deployment on Render with high-speed `uv` dependency management
 - UptimeRobot health monitoring to prevent cold starts on Render free tier
 
 ---
@@ -76,10 +72,11 @@ The system ensures responses remain **grounded in transcript data** to reduce ha
 5. Attempt transcript fetch — direct, then proxy (if credentials configured), then manual paste
 6. Split transcript into chunks
 7. Generate embeddings
-8. Store embeddings in vector database
-9. Retrieve relevant chunks based on user question using MMR
-10. Pass context + query to LLM
-11. Return generated response
+8. Store embeddings in Pinecone, namespaced by video ID — reused across redeploys if the video was already processed
+9. Retrieve relevant chunks based on the user's question via dense similarity search
+10. Rerank the candidate chunks with a cross-encoder for final relevance ordering
+11. Pass reranked context + query to the LLM
+12. Stream the generated response back to the client token-by-token
 
 ---
 
@@ -100,27 +97,47 @@ The system ensures responses remain **grounded in transcript data** to reduce ha
 
 ### Embeddings
 
-- Model: `BAAI/bge-small-en-v1.5`
-- Upgraded from the tutorial-standard `all-MiniLM-L6-v2` — BGE consistently outperforms MiniLM on standard retrieval benchmarks (MTEB, BEIR) while remaining small enough to run on CPU
-- `normalize_embeddings=True` required for correct cosine similarity scoring
+- Model: `text-embedding-3-small` (via OpenAI API)
+- Output dimension: 1536
+- Superior MTEB retrieval performance compared to local CPU models, while keeping server RAM and CPU footprint minimal
 
 ### Vector Store
 
-- FAISS for fast in-memory similarity search
-- In-memory caching via `vector_store_cache` dictionary
+- **Pinecone** (serverless, free tier) — namespaced per video ID
+- **Namespaced per video ID** — each video's chunks live in an isolated namespace, so retrieval for one video can never leak chunks from another, and the namespace doubles as an "already processed" check
+- Vectors persist across backend restarts and redeploys
 
 ### Retrieval
 
-- **MMR (Maximal Marginal Relevance)** instead of plain similarity search
-- Plain similarity search frequently returns redundant chunks from the same segment — MMR balances relevance with diversity, giving the LLM broader context from across the video
-- `k=5`, `fetch_k=20`, `lambda_mult=0.7` — leans towards relevance while still enforcing chunk diversity
+- **Production path:** dense similarity search against Pinecone, followed by cross-encoder reranking
+- **Evaluated but not shipped:** a hybrid BM25 + dense retriever fused via Reciprocal Rank Fusion (RRF) was built and benchmarked (see `eval_precision.py`) but measurably *underperformed* dense-only retrieval at this project's per-video corpus scale (~10–15 chunks/video) — BM25's term-frequency statistics are too noisy on a corpus that small to add useful signal.
+- **Reranking:** `BAAI/bge-reranker-base` cross-encoder re-scores the top dense candidates against the specific question before the final top-k is passed to the LLM
 
-### LLM
+### LLM (Chat Model)
 
-- Model: `openai/gpt-oss-20b` (via HuggingFace Inference API)
+- **Switchable Providers**: Easily toggle between OpenAI and Hugging Face via the `CHAT_PROVIDER` environment variable:
+  - **OpenAI (Production / Default)**: Uses `gpt-5-nano` (or configurable model) for fast, high-quality reasoning.
+  - **Hugging Face (Free Testing)**: Uses `openai/gpt-oss-20b` (or any Hugging Face inference model) for zero-cost testing.
 - Temperature: 0.2
-- Structured prompt with numbered excerpts (`[Excerpt 1]`, `[Excerpt 2]`...) and explicit instructions for sufficient, partial, and insufficient context cases
-- `ANSWER:` suffix helps open source models identify where to begin generating
+- Structured prompt with numbered excerpts (`[Excerpt 1]`, `[Excerpt 2]`...) and strict groundedness instructions
+- Responses are **streamed via Server-Sent Events (SSE)** — the backend yields tokens as they're generated rather than waiting for the full completion
+
+---
+
+## Retrieval Evaluation
+
+Rather than assuming hybrid retrieval or reranking would improve answer quality, both were measured directly with a standalone script, `eval_precision.py`.
+
+**Method:** 5 short YouTube videos across distinct topics (AI/ML, algorithms, biology, finance, chemistry), 5 hand-labeled questions each (25 total), each paired with a keyword confirmed to appear in the transcript segment that actually answers it. For every question, four retrieval configurations were compared on whether the labeled-relevant chunk appeared in the top 3 results:
+
+| Configuration | Precision@3 |
+|---|---|
+| Dense-only (baseline) | 88% |
+| Hybrid RRF (BM25 + dense, no rerank) | 84% |
+| Dense + cross-encoder reranking | 92% |
+| Hybrid + cross-encoder reranking | 92% |
+
+**Finding:** hybrid fusion alone *underperformed* dense-only retrieval, reproducibly, across two independent runs and two different candidate-pool sizes. Cross-encoder reranking was the actual driver of the precision improvement — a **33% relative reduction in top-3 retrieval misses** (from 3/25 to 2/25) over dense-only MMR. This finding directly shaped the production architecture: **dense retrieval + reranking**, without hybrid BM25 fusion.
 
 ---
 
@@ -154,7 +171,7 @@ YTLens uses **JWT-based authentication**. A login is required before accessing a
 
 ### Process Video
 
-`POST /process_video` _(protected)_ — Attempts to fetch transcript automatically and builds the vector store. Returns `{"error": "fallback"}` if both fetch layers fail, signalling the frontend to show the manual paste UI.
+`POST /process_video` _(protected)_ — Attempts to fetch transcript automatically and builds (or reuses, if the Pinecone namespace already exists) the video's vector store. Returns `{"error": "fallback"}` if both fetch layers fail, signalling the frontend to show the manual paste UI.
 
 ### Process Video Manual
 
@@ -162,29 +179,27 @@ YTLens uses **JWT-based authentication**. A login is required before accessing a
 
 ### Ask Question
 
-`POST /ask` _(protected)_ — Returns context-aware answers based on transcript chunks retrieved via MMR.
+`POST /ask` _(protected)_ — Streams a context-aware answer as **Server-Sent Events**, retrieved via dense similarity search and reranked with a cross-encoder before generation. The client reads tokens progressively rather than waiting for a single JSON response.
 
 ---
 
 ## Frontend
 
-Built with Streamlit:
+Built with **Jinja2, vanilla HTML5, CSS3, and modern JavaScript**:
 
-- Login screen with JWT authentication — distinct centered layout, separate from the rest of the app
-- Video URL input with "Analyse Video" action
-- Processing feedback with spinner
-- Automatic transcript fetch with proxy fallback
-- Manual transcript paste UI when auto-fetch fails, directing users to [youtubetotranscript.com](https://youtubetotranscript.com/)
-- Video thumbnail and title preview via YouTube oEmbed API
-- Chat interface with message history
-- Logout button in sidebar
+- **Claude-Inspired Two-Pane Layout**: Collapsible left sidebar (video thumbnail, title, direct YouTube link, switch video action, logout) alongside a centered chat conversation thread.
+- **YouTube Dark Branding**: Custom dark palette (`#0f0f0f` background, `#181818` card surfaces, `#FF0000` accents).
+- **Single-Page Experience (SPA)**: Fluid animated transitions between Login, Video Setup / Fallback, and Chat Interface without page reloads.
+- **Client-Side SSE Streaming**: Real-time token streaming using `fetch()` with `ReadableStream` reader, animated typing cursor, and an active **"Stop generating" (AbortController)** button.
+- **Rich Markdown & Syntax Highlighting**: Real-time markdown parsing with `marked.js` and code syntax highlighting with `highlight.js` (including one-click code copy buttons).
+- **Session Persistence**: Browser `localStorage` retains the JWT auth token and active video metadata across page refreshes.
 
 ### User Flow
 
 1. Sign in with username and password
 2. Paste video link and click Analyse Video
 3. Preview video thumbnail and title
-4. Start chatting
+4. Start chatting — answers stream in token-by-token with full markdown formatting
 
 ---
 
@@ -193,11 +208,14 @@ Built with Streamlit:
 ```text
 youtube-rag-assistant/
 │
+├── Dockerfile                         # Unified Dockerfile using uv (serves API + static + templates)
+├── Dockerfile.dockerignore
+├── README.md
+│
 ├── backend/
-│   ├── Dockerfile
-│   ├── .dockerignore
-│   ├── requirements.txt
-│   ├── main.py
+│   ├── requirements.txt               # Dependencies (including jinja2)
+│   ├── requirements.lock              # Deterministic uv lockfile
+│   ├── main.py                        # FastAPI lifespan, static mounts, and Jinja2 route
 │   │
 │   ├── src/
 │   │   ├── auth.py
@@ -214,17 +232,23 @@ youtube-rag-assistant/
 │   ├── api/
 │   │   └── routes.py
 │   │
+│   ├── eval_precision.py
+│   │
 │   └── .env
 │
-├── frontend/
-│   ├── app.py
-│   ├── requirements.txt
-│   │
-│   └── .streamlit/
-│       └── config.toml
-│
-├── .gitignore
-└── README.md
+└── frontend/
+    ├── templates/
+    │   ├── base.html                  # HTML5 base layout (marked.js, highlight.js, Inter font)
+    │   └── index.html                 # Main template (Login, Video Ingest, Chat views)
+    │
+    ├── static/
+    │   ├── css/
+    │   │   └── style.css              # YouTube dark theme, Claude-like layout
+    │   └── js/
+    │       ├── api.js                 # API client, SSE streaming via fetch ReadableStream
+    │       └── app.js                 # UI state controller, markdown rendering, auto-scroll
+    │
+    └── legacy_streamlit_app.py        # Preserved original Streamlit app as backup
 ```
 
 ---
@@ -238,73 +262,79 @@ git clone https://github.com/<your-username>/ytlens.git
 cd ytlens
 ```
 
-### Backend Setup
+### Install with `uv` (Recommended)
+
+`uv` resolves and installs all dependencies in seconds:
 
 ```bash
-cd backend
-pip install -r requirements.txt
+# Sync environment from uv.lock
+uv sync
 ```
 
 ### Environment Variables
 
-Create a `.env` file in the `backend/` directory:
+Create a `.env` file in the `backend/` directory (or copy `.env.example`):
 
 ```ini
-HUGGINGFACEHUB_API_TOKEN=your_token_here
+# OpenAI (Required for text-embedding-3-small and optional chat)
+OPENAI_API_KEY=your_openai_api_key_here
 
+# Chat Model Toggle: "openai" (recommended) or "huggingface" (free test endpoint)
+CHAT_PROVIDER=openai
+OPENAI_CHAT_MODEL=gpt-5-nano
+
+# HuggingFace (Required if CHAT_PROVIDER=huggingface)
+HUGGINGFACEHUB_API_TOKEN=your_token_here
+HUGGINGFACE_CHAT_MODEL=openai/gpt-oss-20b
+
+# Authentication & Admin Credentials
+JWT_SECRET=your_long_random_secret_string
+DEFAULT_USER=your_admin_username
+DEFAULT_PASS=your_admin_password
+
+# Pinecone Vector Database
+PINECONE_API_KEY=your_pinecone_api_key
+PINECONE_INDEX_NAME=ytlens
+
+# Optional: Residential Proxy
 WEBSHARE_USER=your_webshare_username
 WEBSHARE_PASS=your_webshare_password
-
-JWT_SECRET=your_long_random_secret_string
-DEFAULT_USER=admin
-DEFAULT_PASS=admin123
 ```
+
+> `OPENAI_API_KEY` is required for vector embeddings (`text-embedding-3-small`) and for the chat model when `CHAT_PROVIDER=openai`.
+
+> `CHAT_PROVIDER` lets you switch instantly between `"openai"` (e.g. `gpt-5-nano`) and `"huggingface"` (free inference endpoint).
 
 > `WEBSHARE_USER` and `WEBSHARE_PASS` are optional — if not set the proxy layer is skipped entirely with zero added latency.
 
-> `JWT_SECRET` falls back to a hardcoded dev string if not set — always set it properly in production.
-
-### Frontend Setup
-
-```bash
-cd ../frontend
-pip install -r requirements.txt
-```
+> `PINECONE_API_KEY` is required — the app creates the 1536-dimension index automatically on first run if it doesn't already exist.
 
 ---
 
 ## How to Run
 
-### Backend
+Run the unified FastAPI app (serves both API and frontend):
 
 ```bash
 cd backend
-uvicorn main:app --reload
+uv run uvicorn main:app --reload --port 8000
 ```
 
-### Frontend
+*(Or simply `uvicorn main:app --reload --port 8000` with your virtual environment active).*
 
-```bash
-cd frontend
-streamlit run app.py
-```
-
-> The frontend `API_URL` can be set as an environment variable to switch between local and deployed backend without code changes:
-> 
-> ```ini
-> API_URL=http://127.0.0.1:8000  # local
-> API_URL=https://youtube-rag-backend-js1w.onrender.com  # production
-> ```
+Open your browser at:
+👉 **`http://127.0.0.1:8000`**
 
 ---
 
 ## Deployment Architecture
 
-- Backend deployed as a Dockerized FastAPI service on Render
-- Frontend deployed separately on Streamlit Community Cloud
-- Communication via REST APIs with JWT Bearer token authentication
-- Environment variables managed via Render dashboard and Streamlit secrets
-- UptimeRobot monitors `/health` every 5 minutes to keep the backend warm on Render's free tier
+- **Unified Render Service**: Deployed as a single Dockerized FastAPI service on Render running on port 10000.
+- **Fast Builds with `uv`**: Docker builds use `ghcr.io/astral-sh/uv` to install dependencies in ~30–45s instead of 3–5 minutes.
+- **Decoupled Vector Storage**: Pinecone serverless vector database (`bge-small-en-v1.5` embeddings, cosine metric, namespaced per video ID).
+- **Communication**: REST API with JWT Bearer token authentication; `/ask` responses stream via Server-Sent Events (SSE).
+- **Zero CORS / Domain Issues**: Frontend and backend are hosted on the exact same domain on Render.
+- **Uptime Monitoring**: UptimeRobot monitors `/health` every 5 minutes to keep the backend warm on Render's free tier.
 
 ---
 
@@ -332,21 +362,21 @@ If both fetch attempts fail, the backend returns `{"error": "fallback"}` and the
 
 ## Current Limitations & Tradeoffs
 
-- **In-memory vector storage** — vector stores are scoped to the server process; a server restart clears all cached video data. Redis or Pinecone would be a straightforward upgrade
 - **Ephemeral user storage on Render free tier** — SQLite is wiped on every redeploy; the default admin is re-seeded automatically. Migrating to Neon or Supabase PostgreSQL is a one-line connection string change
 - **Transcript availability** — videos without captions fall back gracefully to the manual paste UI; no video is ever a hard failure
 - **Webshare free tier** — the proxy architecture is fully implemented; reliable auto-fetch on cloud requires upgrading to a paid residential proxy plan
+- **Hybrid retrieval was evaluated, not shipped** — BM25+dense RRF fusion is implemented and benchmarked in `eval_precision.py` but intentionally excluded from production after measurement showed it underperformed dense-only retrieval at this project's per-video corpus scale
+- **Reranker cold start** — the cross-encoder model (~110MB) loads lazily on the first `/ask` call rather than at server startup, so the very first question after a deploy is slower than subsequent ones
 
 ---
 
 ## Future Improvements
 
-- Persistent vector database (Chroma / Pinecone) for cross-session video caching
 - Paid Webshare residential proxy plan for reliable auto-fetch on cloud
 - Persistent database (Neon / Supabase) for stable multi-user support
-- Streaming LLM responses
 - Multi-video querying
 - CI/CD pipeline
+- Re-evaluate hybrid retrieval with a tuned (non-equal) BM25/dense weighting and a larger, held-out evaluation set, separate from the one used to make the current dense-only decision
 
 ---
 
@@ -355,22 +385,27 @@ If both fetch attempts fail, the backend returns `{"error": "fallback"}` and the
 ### Backend
 
 - FastAPI
-- LangChain
-- FAISS
-- HuggingFace Inference API (`BAAI/bge-small-en-v1.5` embeddings, `openai/gpt-oss-20b` LLM)
+- LangChain (`langchain-core`, `langchain-community`, `langchain-openai`, `langchain-huggingface`)
+- Pinecone (serverless vector store, 1536-dim, namespaced per video)
+- OpenAI API (`text-embedding-3-small` embeddings, `gpt-5-nano` chat model)
+- Hugging Face Inference API (`openai/gpt-oss-20b` optional chat model, `BAAI/bge-reranker-base` cross-encoder)
 - youtube-transcript-api v1.2.4
 - SQLite + SQLAlchemy
 - JWT authentication (python-jose, passlib, bcrypt)
 - Webshare residential proxies
+- `rank_bm25` (retrieval evaluation benchmark only)
 
 ### Frontend
 
-- Streamlit
-- Custom dark theme via `.streamlit/config.toml` — YouTube red accent, deep navy backgrounds, consistent typography
+- Jinja2 template engine
+- Modern vanilla HTML5 / CSS3 / JavaScript (ES6+)
+- `marked.js` (client-side markdown parsing)
+- `highlight.js` (code syntax highlighting with copy buttons)
+- Server-Sent Events (SSE) streaming via `fetch()` `ReadableStream` reader
 
-### Deployment
+### Deployment & Tooling
 
-- Docker (backend)
-- Render (backend hosting)
-- Streamlit Community Cloud (frontend hosting)
+- `uv` (modern Python package and project manager)
+- Docker (unified multi-stage container)
+- Render (web service hosting)
 - UptimeRobot (health monitoring)

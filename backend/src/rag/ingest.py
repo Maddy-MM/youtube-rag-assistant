@@ -5,6 +5,22 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.proxies import WebshareProxyConfig
 
+def _fetch_from_api(ytt_api: YouTubeTranscriptApi, video_id: str) -> str:
+    try:
+        transcript = ytt_api.fetch(video_id, languages=["en", "en-US", "en-GB"])
+    except Exception:
+        # Fallback to the first available transcript in any language
+        transcript_list = ytt_api.list(video_id)
+        transcript = None
+        for t in transcript_list:
+            transcript = t.fetch()
+            break
+        if transcript is None:
+            raise RuntimeError(f"No transcripts found for video {video_id}")
+
+    return " ".join(chunk.text for chunk in transcript)
+
+
 def _fetch_with_proxy(video_id: str) -> str | None:
     session = Session()
     adapter = HTTPAdapter(max_retries=0)
@@ -22,12 +38,7 @@ def _fetch_with_proxy(video_id: str) -> str | None:
         http_client=session
     )
 
-    try:
-        transcript = ytt_api_proxy.fetch(video_id, languages=["en"])
-    except Exception:
-        transcript = ytt_api_proxy.fetch(video_id)
-
-    return " ".join(chunk.text for chunk in transcript)
+    return _fetch_from_api(ytt_api_proxy, video_id)
 
 
 def get_transcript(video_id: str) -> tuple[str | None, str | None]:
@@ -35,12 +46,7 @@ def get_transcript(video_id: str) -> tuple[str | None, str | None]:
     # Layer 1: direct fetch (no proxy)
     try:
         ytt_api = YouTubeTranscriptApi()
-        try:
-            transcript = ytt_api.fetch(video_id, languages=["en"])
-        except Exception:
-            transcript = ytt_api.fetch(video_id)
-
-        text = " ".join(chunk.text for chunk in transcript)
+        text = _fetch_from_api(ytt_api, video_id)
         return text, None
 
     except Exception as e:

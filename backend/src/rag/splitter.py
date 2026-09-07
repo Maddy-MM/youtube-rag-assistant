@@ -2,6 +2,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 def split_text(text: str):
+    if not text or not text.strip():
+        return []
+
     # Smaller chunks with sentence-aware separators work better for transcripts
     # which have no paragraph structure unlike typical documents
     splitter = RecursiveCharacterTextSplitter(
