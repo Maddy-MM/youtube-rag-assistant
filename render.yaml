@@ -10,3 +10,5 @@ services:
         value: 10000
       - key: ENABLE_RERANKER
         value: "false"
+      - key: DATABASE_URL
+        sync: false

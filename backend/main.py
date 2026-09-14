@@ -1,16 +1,21 @@
 import os
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+_env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.exists(_env_file):
+    load_dotenv(_env_file)
+else:
+    load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from api.routes import router
-from dotenv import load_dotenv
 from src.database import init_db, SessionLocal, User
 from src.auth import get_user, create_user, hash_password
 from src.rag.retriever import _get_reranker
-
-load_dotenv()
 
 _base = os.path.dirname(os.path.abspath(__file__))
 _candidates = [
@@ -33,8 +38,6 @@ async def lifespan(app: FastAPI):
 
     db = SessionLocal()
     try:
-        db.query(User).filter(User.username != default_username).delete()
-
         user = get_user(db, default_username)
         if not user:
             create_user(db, default_username, default_password)

@@ -1,12 +1,24 @@
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./users.db")
+_base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_env_file = os.path.join(_base_dir, ".env")
+if os.path.exists(_env_file):
+    load_dotenv(_env_file)
+else:
+    load_dotenv()
 
-engine_kwargs = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=engine_kwargs)
+_default_sqlite = f"sqlite:///{os.path.join(_base_dir, 'users.db')}"
+
+DATABASE_URL = os.environ.get("DATABASE_URL", _default_sqlite)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine_kwargs = {"connect_args": {"check_same_thread": False}} if DATABASE_URL.startswith("sqlite") else {"pool_pre_ping": True}
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
