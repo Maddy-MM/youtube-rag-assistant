@@ -16,8 +16,6 @@ def _format_timestamp(seconds: float | int) -> str:
 
 
 def _format_transcript_chunks(transcript) -> str:
-    """Combines subtitle snippets into time-coded blocks every ~15-20 seconds
-    so RAG embeddings retain temporal context without token bloat."""
     formatted_blocks = []
     current_block = []
     block_start_time = None
@@ -41,7 +39,6 @@ def _format_transcript_chunks(transcript) -> str:
 
         current_block.append(text)
 
-        # Emit block if at least 18 seconds elapsed or block has reached ~40 words
         if (start - block_start_time >= 18.0) or (len(" ".join(current_block).split()) >= 45):
             ts = _format_timestamp(block_start_time)
             formatted_blocks.append(f"[{ts}] {' '.join(current_block)}")
@@ -59,7 +56,6 @@ def _fetch_from_api(ytt_api: YouTubeTranscriptApi, video_id: str) -> str:
     try:
         transcript = ytt_api.fetch(video_id, languages=["en", "en-US", "en-GB"])
     except Exception:
-        # Fallback to the first available transcript in any language
         transcript_list = ytt_api.list(video_id)
         transcript = None
         for t in transcript_list:
@@ -92,17 +88,13 @@ def _fetch_with_proxy(video_id: str) -> str | None:
 
 
 def get_transcript(video_id: str) -> tuple[str | None, str | None]:
-
-    # Layer 1: direct fetch (no proxy)
     try:
         ytt_api = YouTubeTranscriptApi()
         text = _fetch_from_api(ytt_api, video_id)
         return text, None
-
     except Exception as e:
         print("Direct fetch failed:", e)
 
-    # Layer 2: proxy fetch — only attempted if credentials are configured
     proxy_user = os.environ.get("WEBSHARE_USER")
     proxy_pass = os.environ.get("WEBSHARE_PASS")
 

@@ -28,26 +28,24 @@ from src.auth import (
 
 router = APIRouter()
 
-# In-memory retriever cache (dense retriever handle per video)
-# Pinecone holds durable vector storage; if the backend restarts,
-# the cache can reconstitute the retriever on-the-fly using the namespace.
 retriever_cache = {}
 
-# -------------------------
-# Models
-# -------------------------
+
 class VideoRequest(BaseModel):
     video_id: str
     title: Optional[str] = "YouTube Video"
+
 
 class QuestionRequest(BaseModel):
     video_id: str
     question: str
 
+
 class ManualTranscriptRequest(BaseModel):
     video_id: str
     transcript: str
     title: Optional[str] = "YouTube Video"
+
 
 class SaveChatRequest(BaseModel):
     id: str
@@ -56,13 +54,12 @@ class SaveChatRequest(BaseModel):
     title: Optional[str] = "New Chat"
     messages_json: str
 
+
 class AuthRequest(BaseModel):
     username: str
     password: str
 
-# -------------------------
-# Helper
-# -------------------------
+
 def extract_video_id(url: str) -> str:
     url = url.strip()
     if "v=" in url:
@@ -86,7 +83,6 @@ def _fetch_youtube_title(video_id: str) -> str:
     except Exception:
         pass
 
-    # Secondary fallback: parse <title> tag from watch page
     try:
         url = f"https://www.youtube.com/watch?v={video_id}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Language": "en-US,en;q=0.9"})
@@ -119,12 +115,11 @@ def _record_user_video(db: Session, user_id: int, video_id: str, title: str) -> 
         return existing.title or "YouTube Video"
     return existing.title or resolved_title or "YouTube Video"
 
-# -------------------------
-# Public endpoints
-# -------------------------
+
 @router.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @router.post("/login")
 def login(req: AuthRequest, db: Session = Depends(get_db)):
@@ -134,9 +129,7 @@ def login(req: AuthRequest, db: Session = Depends(get_db)):
     token = create_access_token(user.username)
     return {"access_token": token, "token_type": "bearer"}
 
-# -------------------------
-# Protected endpoints — Video Processing & Library
-# -------------------------
+
 @router.post("/process_video")
 def process_video(
     req: VideoRequest,
@@ -153,8 +146,6 @@ def process_video(
         return {"message": "Video already processed", "title": resolved_title}
 
     if namespace_exists(video_id):
-        # Pinecone's vectors survived a redeploy that wiped this in-memory
-        # cache — reuse them instead of re-fetching and re-embedding.
         vector_store = get_vector_store(video_id)
     else:
         transcript, status = get_transcript(video_id)
@@ -187,8 +178,8 @@ def process_video_manual(
         raise HTTPException(status_code=400, detail="Transcript produced no content chunks")
     vector_store = create_vector_store(docs, video_id)
     retriever_cache[video_id] = get_dense_retriever(vector_store)
-
     return {"message": "Video processed successfully", "title": resolved_title}
+
 
 @router.get("/videos")
 def list_videos(
@@ -196,7 +187,6 @@ def list_videos(
     db: Session = Depends(get_db),
 ):
     videos = db.query(UserVideo).filter(UserVideo.user_id == current_user.id).order_by(UserVideo.created_at.desc()).all()
-    # Auto-heal titles that defaulted to "YouTube Video"
     updated = False
     for v in videos:
         if not v.title or v.title == "YouTube Video":
@@ -219,6 +209,7 @@ def list_videos(
         for v in videos
     ]
 
+
 @router.delete("/videos/{video_id}")
 def delete_video(
     video_id: str,
@@ -234,9 +225,7 @@ def delete_video(
 
     return {"message": f"Video {clean_id} removed from library and vector store"}
 
-# -------------------------
-# Chat Session History Endpoints
-# -------------------------
+
 @router.get("/chats")
 def list_chats(
     current_user: User = Depends(get_current_user),
@@ -271,6 +260,7 @@ def list_chats(
         }
         for c in chats
     ]
+
 
 @router.get("/chats/{chat_id}")
 def get_chat(
@@ -307,13 +297,13 @@ def get_chat(
         "updated_at": chat.updated_at.isoformat() if chat.updated_at else None,
     }
 
+
 @router.post("/chats")
 def save_chat(
     req: SaveChatRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Resolve video title if incoming request has placeholder
     resolved_vtitle = req.video_title
     if not resolved_vtitle or resolved_vtitle == "YouTube Video":
         uv = db.query(UserVideo).filter(UserVideo.user_id == current_user.id, UserVideo.video_id == req.video_id).first()
@@ -343,6 +333,7 @@ def save_chat(
     db.commit()
     return {"message": "Chat saved successfully", "id": chat.id}
 
+
 @router.delete("/chats")
 def clear_all_chats(
     current_user: User = Depends(get_current_user),
@@ -351,6 +342,7 @@ def clear_all_chats(
     count = db.query(ChatSession).filter(ChatSession.user_id == current_user.id).delete()
     db.commit()
     return {"message": f"Cleared {count} chats"}
+
 
 @router.delete("/chats/{chat_id}")
 def delete_chat(
@@ -364,9 +356,7 @@ def delete_chat(
         raise HTTPException(status_code=404, detail="Chat not found")
     return {"message": "Chat deleted"}
 
-# -------------------------
-# Protected endpoints — Question Answering
-# -------------------------
+
 @router.post("/ask")
 def ask_question(
     req: QuestionRequest,
@@ -379,7 +369,6 @@ def ask_question(
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
     if video_id not in retriever_cache:
-        # If backend restarted, reconstitute the retriever from Pinecone namespace
         if namespace_exists(video_id):
             vector_store = get_vector_store(video_id)
             retriever_cache[video_id] = get_dense_retriever(vector_store)
@@ -390,8 +379,6 @@ def ask_question(
 
     def event_stream():
         for token in stream_answer(retriever, req.question):
-            # each line of a multi-line token needs its own "data:" field,
-            # otherwise SSE clients only read the first line of the payload
             for line in token.split("\n"):
                 yield f"data: {line}\n"
             yield "\n"

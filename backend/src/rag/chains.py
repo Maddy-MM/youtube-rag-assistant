@@ -64,9 +64,6 @@ def _get_llm():
 
 
 def build_chain(retriever):
-    """Non-streaming path — kept for tests/scripts (e.g. the precision
-    eval harness), which just need a final string, not tokens."""
-
     def retrieve_and_rerank(question: str):
         candidates = retriever.invoke(question)
         return rerank(question, candidates, top_k=5)
@@ -85,10 +82,6 @@ def build_chain(retriever):
 
 
 def stream_answer(retriever, question: str):
-    """Generator yielding answer tokens as they're produced. Retrieval +
-    reranking happen up front (they're fast, milliseconds); only generation
-    is streamed, since that's where the user-perceived latency actually is.
-    """
     candidates = retriever.invoke(question)
     top_docs = rerank(question, candidates, top_k=5)
     context = _format_docs(top_docs)

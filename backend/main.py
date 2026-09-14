@@ -12,12 +12,10 @@ from src.rag.retriever import _get_reranker
 
 load_dotenv()
 
-# Resolve frontend directory — works in both local dev (../frontend)
-# and Docker (/app/frontend) layouts.
 _base = os.path.dirname(os.path.abspath(__file__))
 _candidates = [
-    os.path.join(_base, "frontend"),       # Docker: /app/frontend
-    os.path.join(_base, "..", "frontend"),  # Local:  ../frontend
+    os.path.join(_base, "frontend"),
+    os.path.join(_base, "..", "frontend"),
 ]
 FRONTEND_DIR = next(
     (p for p in _candidates if os.path.isdir(os.path.join(p, "templates"))),
@@ -28,7 +26,6 @@ templates = Jinja2Templates(directory=os.path.join(FRONTEND_DIR, "templates"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     init_db()
 
     default_username = os.environ.get("DEFAULT_USER", "admin")
@@ -36,7 +33,6 @@ async def lifespan(app: FastAPI):
 
     db = SessionLocal()
     try:
-        # Remove any other accounts so only the credentials in .env can log in
         db.query(User).filter(User.username != default_username).delete()
 
         user = get_user(db, default_username)
@@ -50,7 +46,6 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
 
-    # Only pre-warm neural reranker if explicitly enabled (saves ~800MB RAM on 512MB hosts)
     if os.environ.get("ENABLE_RERANKER", "false").lower() in ("1", "true", "yes"):
         try:
             _get_reranker()
@@ -60,7 +55,7 @@ async def lifespan(app: FastAPI):
     else:
         print("Running in memory-optimized mode (local neural reranker inactive, using Pinecone dense rank).")
 
-    yield  # Application runs here
+    yield
 
 
 app = FastAPI(title="YouTube RAG API", lifespan=lifespan)

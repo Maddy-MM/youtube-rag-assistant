@@ -3,7 +3,7 @@ from pinecone import Pinecone, ServerlessSpec
 from langchain_openai import OpenAIEmbeddings
 from langchain_pinecone import PineconeVectorStore
 
-EMBEDDING_DIM = 1536  # text-embedding-3-small native dimension
+EMBEDDING_DIM = 1536
 INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "ytlens")
 
 _embeddings = None
@@ -43,8 +43,6 @@ def get_pinecone_index():
 
 
 def namespace_exists(video_id: str) -> bool:
-    """Cheap 'already processed' check — namespaces let one Pinecone index
-    hold every video without their chunks ever mixing at query time."""
     try:
         index = get_pinecone_index()
         stats = index.describe_index_stats()
@@ -75,7 +73,6 @@ def get_vector_store(video_id: str) -> PineconeVectorStore:
 
 
 def delete_vector_namespace(video_id: str):
-    """Deletes all vectors in the given namespace from Pinecone."""
     try:
         index = get_pinecone_index()
         index.delete(delete_all=True, namespace=video_id)

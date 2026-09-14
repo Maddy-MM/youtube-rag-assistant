@@ -5,7 +5,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./users.db")
 
-# SQLite requires check_same_thread: False; Postgres / others do not
 engine_kwargs = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=engine_kwargs)
 SessionLocal = sessionmaker(bind=engine)
@@ -38,12 +37,12 @@ class UserVideo(Base):
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
 
-    id = Column(String, primary_key=True, index=True)  # UUID or client-generated ID
+    id = Column(String, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     video_id = Column(String, nullable=False)
     video_title = Column(String, default="YouTube Video")
     title = Column(String, default="New Chat")
-    messages_json = Column(Text, default="[]")  # Serialized list of messages [{"role": "...", "content": "..."}]
+    messages_json = Column(Text, default="[]")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
