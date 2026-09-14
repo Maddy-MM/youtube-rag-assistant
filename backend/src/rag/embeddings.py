@@ -72,3 +72,14 @@ def get_vector_store(video_id: str) -> PineconeVectorStore:
         embedding=get_embeddings(),
         namespace=video_id,
     )
+
+
+def delete_vector_namespace(video_id: str):
+    """Deletes all vectors in the given namespace from Pinecone."""
+    try:
+        index = get_pinecone_index()
+        index.delete(delete_all=True, namespace=video_id)
+        return True
+    except Exception as e:
+        print(f"Error deleting namespace {video_id}:", e)
+        return False

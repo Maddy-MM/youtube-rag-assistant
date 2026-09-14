@@ -114,11 +114,11 @@ const API = (() => {
      * POST /process_video
      * @returns {{ message?: string, error?: string }}
      */
-    async function processVideo(videoId) {
+    async function processVideo(videoId, title) {
         const res = await fetch('/process_video', {
             method: 'POST',
             headers: authHeaders(),
-            body: JSON.stringify({ video_id: videoId })
+            body: JSON.stringify({ video_id: videoId, title: title || undefined })
         });
 
         if (res.status === 401) {
@@ -133,11 +133,11 @@ const API = (() => {
      * POST /process_video_manual
      * @returns {{ message?: string, error?: string }}
      */
-    async function processVideoManual(videoId, transcript) {
+    async function processVideoManual(videoId, transcript, title) {
         const res = await fetch('/process_video_manual', {
             method: 'POST',
             headers: authHeaders(),
-            body: JSON.stringify({ video_id: videoId, transcript })
+            body: JSON.stringify({ video_id: videoId, transcript, title: title || undefined })
         });
 
         if (res.status === 401) {
@@ -145,6 +145,112 @@ const API = (() => {
             throw new Error('SESSION_EXPIRED');
         }
 
+        return await res.json();
+    }
+
+    /**
+     * GET /videos — fetch saved videos in user's library
+     */
+    async function getVideos() {
+        const res = await fetch('/videos', {
+            method: 'GET',
+            headers: authHeaders()
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
+        return await res.json();
+    }
+
+    /**
+     * DELETE /videos/:videoId — remove video from library and Pinecone
+     */
+    async function deleteVideo(videoId) {
+        const res = await fetch(`/videos/${videoId}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
+        return await res.json();
+    }
+
+    /**
+     * GET /chats — list all chat sessions
+     */
+    async function getChats() {
+        const res = await fetch('/chats', {
+            method: 'GET',
+            headers: authHeaders()
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
+        return await res.json();
+    }
+
+    /**
+     * GET /chats/:chatId — get full chat with messages
+     */
+    async function getChat(chatId) {
+        const res = await fetch(`/chats/${chatId}`, {
+            method: 'GET',
+            headers: authHeaders()
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
+        return await res.json();
+    }
+
+    /**
+     * POST /chats — create or update a chat session
+     */
+    async function saveChat(chatData) {
+        const res = await fetch('/chats', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify(chatData)
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
+        return await res.json();
+    }
+
+    /**
+     * DELETE /chats/:chatId — delete a chat session
+     */
+    async function deleteChat(chatId) {
+        const res = await fetch(`/chats/${chatId}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
+        return await res.json();
+    }
+
+    /**
+     * DELETE /chats — clear all chat sessions for the current user
+     */
+    async function clearAllChats() {
+        const res = await fetch('/chats', {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+        if (res.status === 401) {
+            clearToken();
+            throw new Error('SESSION_EXPIRED');
+        }
         return await res.json();
     }
 
@@ -244,6 +350,14 @@ const API = (() => {
         login,
         processVideo,
         processVideoManual,
+        getVideos,
+        deleteVideo,
+        getChats,
+        getChat,
+        saveChat,
+        deleteChat,
+        clearAllChats,
         streamAsk
     };
 })();
+

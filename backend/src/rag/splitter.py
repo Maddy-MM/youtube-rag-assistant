@@ -5,11 +5,10 @@ def split_text(text: str):
     if not text or not text.strip():
         return []
 
-    # Smaller chunks with sentence-aware separators work better for transcripts
-    # which have no paragraph structure unlike typical documents
+    # Sentence and block-aware separators to preserve timestamp anchors
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=600,
         chunk_overlap=150,
-        separators=[". ", "? ", "! ", " ", ""],
+        separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""],
     )
     return splitter.create_documents([text])

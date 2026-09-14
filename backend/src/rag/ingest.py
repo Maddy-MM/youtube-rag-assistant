@@ -5,6 +5,56 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.proxies import WebshareProxyConfig
 
+def _format_timestamp(seconds: float | int) -> str:
+    total = max(0, int(seconds))
+    hrs = total // 3600
+    mins = (total % 3600) // 60
+    secs = total % 60
+    if hrs > 0:
+        return f"{hrs:02d}:{mins:02d}:{secs:02d}"
+    return f"{mins:02d}:{secs:02d}"
+
+
+def _format_transcript_chunks(transcript) -> str:
+    """Combines subtitle snippets into time-coded blocks every ~15-20 seconds
+    so RAG embeddings retain temporal context without token bloat."""
+    formatted_blocks = []
+    current_block = []
+    block_start_time = None
+
+    for item in transcript:
+        if hasattr(item, "text"):
+            text = str(item.text).strip()
+            start = float(getattr(item, "start", 0.0))
+        elif isinstance(item, dict):
+            text = str(item.get("text", "")).strip()
+            start = float(item.get("start", 0.0))
+        else:
+            text = str(item).strip()
+            start = 0.0
+
+        if not text:
+            continue
+
+        if block_start_time is None:
+            block_start_time = start
+
+        current_block.append(text)
+
+        # Emit block if at least 18 seconds elapsed or block has reached ~40 words
+        if (start - block_start_time >= 18.0) or (len(" ".join(current_block).split()) >= 45):
+            ts = _format_timestamp(block_start_time)
+            formatted_blocks.append(f"[{ts}] {' '.join(current_block)}")
+            current_block = []
+            block_start_time = None
+
+    if current_block:
+        ts = _format_timestamp(block_start_time if block_start_time is not None else 0.0)
+        formatted_blocks.append(f"[{ts}] {' '.join(current_block)}")
+
+    return "\n\n".join(formatted_blocks)
+
+
 def _fetch_from_api(ytt_api: YouTubeTranscriptApi, video_id: str) -> str:
     try:
         transcript = ytt_api.fetch(video_id, languages=["en", "en-US", "en-GB"])
@@ -18,7 +68,7 @@ def _fetch_from_api(ytt_api: YouTubeTranscriptApi, video_id: str) -> str:
         if transcript is None:
             raise RuntimeError(f"No transcripts found for video {video_id}")
 
-    return " ".join(chunk.text for chunk in transcript)
+    return _format_transcript_chunks(transcript)
 
 
 def _fetch_with_proxy(video_id: str) -> str | None:

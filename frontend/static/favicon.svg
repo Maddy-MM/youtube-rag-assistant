@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ytlens-brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF1A35"/>
+      <stop offset="100%" stop-color="#C40026"/>
+    </linearGradient>
+  </defs>
+  <!-- Squircle Background Matching YTLens Brand -->
+  <rect width="64" height="64" rx="16" fill="url(#ytlens-brand-grad)"/>
+  <!-- Specular inner rim -->
+  <rect x="1" y="1" width="62" height="62" rx="15" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+  <!-- Optically Centered Play Triangle with Subtle Rounded Corners -->
+  <path d="M25 18.2 C25 16.7 26.6 15.8 27.9 16.6 L47.4 29.1 C48.6 29.9 48.6 31.6 47.4 32.4 L27.9 44.9 C26.6 45.7 25 44.8 25 43.3 Z" fill="#ffffff"/>
+</svg>

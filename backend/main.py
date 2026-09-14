@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from api.routes import router
@@ -69,6 +70,12 @@ app.include_router(router)
 @app.get("/")
 async def index(request: Request):
     return templates.TemplateResponse(request, "index.html")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    file_path = os.path.join(FRONTEND_DIR, "static", "favicon.svg")
+    return FileResponse(file_path, media_type="image/svg+xml")
 
 
 app.mount("/static", StaticFiles(directory=os.path.join(FRONTEND_DIR, "static")), name="static")

@@ -16,11 +16,13 @@ TRANSCRIPT EXCERPTS:
 INSTRUCTIONS:
 - Answer the question using only the transcript excerpts above.
 - Be concise and direct. Do not repeat the question.
-- If the excerpts contain a clear answer, provide it with relevant detail.
-- If the excerpts are partially relevant, use what is available and note any gaps.
+- Whenever citing facts, explanations, or specific details from the video, include the timestamp from the transcript excerpts in [MM:SS] or [HH:MM:SS] format (e.g., [02:15] or [01:14:30]) directly after the relevant statement.
+- If multiple points or steps are mentioned, provide the corresponding timestamp for each.
+- If the excerpts contain a clear answer, provide it with relevant detail and timestamps.
+- If the excerpts are partially relevant, use what is available, include timestamps, and note any gaps.
 - If the excerpts do not contain enough information to answer, respond with:
   "The video does not appear to cover this topic."
-- Do not make up information or use outside knowledge.
+- Do not make up information, timestamps, or use outside knowledge.
 
 QUESTION: {question}
 
