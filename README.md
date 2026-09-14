@@ -6,23 +6,23 @@ A production-grade **Retrieval-Augmented Generation (RAG) system** that allows u
 
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Live Demo](#live-demo)
-3. [Features](#features)
-4. [Project Workflow](#project-workflow)
-5. [RAG Pipeline Architecture](#rag-pipeline-architecture)
-6. [Retrieval Evaluation](#retrieval-evaluation)
-7. [Authentication & Database](#authentication--database)
-8. [API Endpoints](#api-endpoints)
-9. [Frontend Experience](#frontend-experience)
-10. [Project Structure](#project-structure)
-11. [Installation & Setup](#installation--setup)
-12. [How to Run](#how-to-run)
-13. [Deployment Architecture](#deployment-architecture)
-14. [Transcript Fetching Strategy](#transcript-fetching-strategy)
-15. [Current Limitations & Tradeoffs](#current-limitations--tradeoffs)
-16. [Future Improvements](#future-improvements)
-17. [Tech Stack](#tech-stack)
+1. Overview
+2. Live Demo
+3. Features
+4. Project Workflow
+5. RAG Pipeline Architecture
+6. Retrieval Evaluation
+7. Authentication & Database
+8. API Endpoints
+9. Frontend Experience
+10. Project Structure
+11. Installation & Setup
+12. How to Run
+13. Deployment Architecture
+14. Transcript Fetching Strategy
+15. Current Limitations & Tradeoffs
+16. Future Improvements
+17. Tech Stack
 
 ---
 
