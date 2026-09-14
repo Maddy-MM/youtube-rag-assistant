@@ -656,16 +656,19 @@
                 <div id="fallback-section" class="ingest-fallback-drawer" hidden>
                     <div class="fallback-drawer__header">
                         <span class="fallback-drawer__title">Manual Transcript Input</span>
-                        <button type="button" id="fallback-cancel-btn" class="fallback-drawer__close" title="Close">
-                            <svg width="12" height="12"><use href="#icon-close"/></svg>
-                        </button>
+                        <a href="https://youtubetotranscript.com/" id="fallback-external-btn" target="_blank" rel="noopener noreferrer" class="fallback-drawer__link" title="Copy video link & open youtubetotranscript.com">youtubetotranscript.com ↗</a>
                     </div>
                     <textarea id="fallback-textarea" class="fallback-drawer__textarea" placeholder="Paste full transcript text from youtubetotranscript.com…" rows="3"></textarea>
                     <div class="fallback-drawer__footer">
                         <span id="fallback-char-count" class="fallback-drawer__counter">0 characters</span>
                         <div class="fallback-drawer__actions">
                             <button type="button" id="fallback-return-btn" class="fallback-drawer__btn-secondary">Cancel</button>
-                            <button type="button" id="fallback-btn" class="fallback-drawer__btn-primary">Submit Transcript</button>
+                            <button type="button" id="fallback-btn" class="fallback-drawer__btn-primary">
+                                <span class="fallback__btn-text">Submit Transcript</span>
+                                <span class="fallback__btn-loader" hidden>
+                                    <span class="spinner"></span> Indexing Transcript…
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>

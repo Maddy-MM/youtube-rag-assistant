@@ -71,14 +71,21 @@ def extract_video_id(url: str) -> str:
     return url
 
 
+_title_cache = {}
+
+
 def _fetch_youtube_title(video_id: str) -> str:
+    if video_id in _title_cache:
+        return _title_cache[video_id]
+
     try:
         url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=4) as resp:
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
             data = json.loads(resp.read().decode())
             t = data.get("title")
             if t and t.strip():
+                _title_cache[video_id] = t.strip()
                 return t.strip()
     except Exception:
         pass
@@ -86,17 +93,19 @@ def _fetch_youtube_title(video_id: str) -> str:
     try:
         url = f"https://www.youtube.com/watch?v={video_id}"
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept-Language": "en-US,en;q=0.9"})
-        with urllib.request.urlopen(req, timeout=4) as resp:
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
             html = resp.read().decode("utf-8", errors="ignore")
             import re
             m = re.search(r'<title>(.*?)</title>', html)
             if m:
                 raw = m.group(1).replace(" - YouTube", "").strip()
                 if raw and raw.lower() != "youtube":
+                    _title_cache[video_id] = raw
                     return raw
     except Exception:
         pass
 
+    _title_cache[video_id] = "YouTube Video"
     return "YouTube Video"
 
 

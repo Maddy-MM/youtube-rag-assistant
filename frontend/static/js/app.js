@@ -1060,6 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('modal-is-open');
         if (libraryViewList) libraryViewList.classList.toggle('is-active', currentLibraryView === 'list');
         if (libraryViewGrid) libraryViewGrid.classList.toggle('is-active', currentLibraryView === 'grid');
+        renderModalVideoGrid();
         loadLibrary();
         if (modalLibrarySearch) {
             modalLibrarySearch.value = '';
@@ -1209,8 +1210,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Loading Button States
     // =============================
     function setButtonLoading(btn, loading) {
-        const textEl   = btn.querySelector('.video__btn-text, .login__btn-text');
-        const loaderEl = btn.querySelector('.video__btn-loader, .login__btn-loader');
+        if (!btn) return;
+        const textEl   = btn.querySelector('.video__btn-text, .login__btn-text, .fallback__btn-text');
+        const loaderEl = btn.querySelector('.video__btn-loader, .login__btn-loader, .fallback__btn-loader');
         if (textEl) textEl.hidden = loading;
         if (loaderEl) loaderEl.hidden = !loading;
         btn.disabled = loading;
@@ -1480,6 +1482,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fallbackCancelBtn) fallbackCancelBtn.addEventListener('click', hideFallbackProtocol);
     if (fallbackReturnBtn) fallbackReturnBtn.addEventListener('click', hideFallbackProtocol);
 
+    const fallbackExternalBtn = $('#fallback-external-btn');
+    if (fallbackExternalBtn) {
+        fallbackExternalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const raw = videoInput ? videoInput.value.trim() : '';
+            const vidId = pendingFallbackVideoId || (raw ? API.extractVideoId(raw) : '');
+            if (vidId) {
+                pendingFallbackVideoId = vidId;
+                const fullYtUrl = `https://www.youtube.com/watch?v=${vidId}`;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(fullYtUrl).then(() => {
+                        showToast('Video link copied to clipboard! Paste it on youtubetotranscript.com', 'success');
+                    }).catch(() => {
+                        showToast('Opening youtubetotranscript.com...', 'info');
+                    });
+                } else {
+                    showToast('Opening youtubetotranscript.com...', 'info');
+                }
+            } else {
+                showToast('Opening youtubetotranscript.com... Paste your video link there.', 'info');
+            }
+            window.open('https://youtubetotranscript.com/', '_blank', 'noopener,noreferrer');
+        });
+    }
+
     fallbackBtn.addEventListener('click', async () => {
         const transcript = fallbackTextarea.value.trim();
         if (!transcript) {
@@ -1488,7 +1515,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!pendingFallbackVideoId) {
-            showToast('No active video found for fallback transcript.', 'error');
+            const raw = videoInput ? videoInput.value.trim() : '';
+            if (raw) {
+                pendingFallbackVideoId = API.extractVideoId(raw);
+            }
+        }
+
+        if (!pendingFallbackVideoId) {
+            showToast('Please enter a YouTube video URL or ID above first.', 'error');
             return;
         }
 
@@ -1583,6 +1617,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all([loadChats(), loadLibrary()]);
     }
 
+    let cachedChatsJson = '';
+
     // Load recent chats into sidebar (Clean ChatGPT / Claude single-line style)
     async function loadChats() {
         if (!chatsList || !API.getToken()) return;
@@ -1590,6 +1626,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const chats = await API.getChats();
             const sidebarChatsCount = $('#sidebar-chats-count');
             if (!chats || chats.length === 0) {
+                cachedChatsJson = '[]';
                 if (sidebarChatsCount) sidebarChatsCount.style.display = 'none';
                 if (sidebarClearChatsBtn) sidebarClearChatsBtn.style.display = 'none';
                 chatsList.innerHTML = `
@@ -1613,6 +1650,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 sidebarChatsCount.textContent = chats.length.toString();
                 sidebarChatsCount.style.display = 'inline-block';
             }
+
+            const newJson = JSON.stringify(chats.map(c => ({ id: c.id, title: c.title, updated_at: c.updated_at })));
+            if (newJson === cachedChatsJson && chatsList.querySelectorAll('.sidebar__chat-item').length === chats.length) {
+                chatsList.querySelectorAll('.sidebar__chat-item').forEach(el => {
+                    el.classList.toggle('sidebar__chat-item--active', el.getAttribute('data-id') === currentChatId);
+                });
+                return;
+            }
+            cachedChatsJson = newJson;
 
             chatsList.innerHTML = '';
             chats.forEach(c => {
@@ -1639,11 +1685,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.appendChild(titleSpan);
                 item.appendChild(delBtn);
 
-                // Switch to this chat
+                // Switch to this chat (Instant feedback + drawer close on mobile)
                 item.addEventListener('click', async (e) => {
                     if (e.target.closest('.sidebar__chat-item-del')) return;
+                    if (currentChatId === c.id && messages.length > 0) {
+                        if (window.innerWidth <= 768) closeSidebar();
+                        showScreen('chat');
+                        return;
+                    }
+
+                    const targetChatId = c.id;
+                    const prevChatId = currentChatId;
+                    currentChatId = targetChatId;
+
+                    // Immediately update active highlighter on click so user gets instant visual response
+                    if (chatsList) {
+                        chatsList.querySelectorAll('.sidebar__chat-item').forEach(el => {
+                            el.classList.toggle('sidebar__chat-item--active', el.getAttribute('data-id') === targetChatId);
+                        });
+                    }
+
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                    showScreen('chat');
+
+                    messages = [];
+                    if (welcomeState) welcomeState.style.display = 'none';
+                    if (chatInputBar) chatInputBar.style.display = 'block';
+                    const existingMsg = messagesContainer.querySelectorAll('.message');
+                    existingMsg.forEach(el => el.remove());
+                    messagesContainer.innerHTML = `
+                        <div class="chat-loading-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:0.75rem;color:#94a3b8;font-size:0.85rem;">
+                            <div class="stream-spinner" style="width:22px;height:22px;border:2px solid rgba(255,255,255,0.15);border-top-color:#38bdf8;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                            <span>Loading conversation...</span>
+                        </div>`;
+
                     try {
-                        const fullChat = await API.getChat(c.id);
+                        const fullChat = await API.getChat(targetChatId);
                         let vTitle = fullChat.video_title;
                         if (!vTitle || vTitle === 'YouTube Video') {
                             const match = allSavedVideos.find(v => v.video_id === fullChat.video_id);
@@ -1674,9 +1753,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         renderMessages();
-                        if (window.innerWidth <= 768) closeSidebar();
-                        loadChats();
+
+                        // Keep active highlighter in exact sync with rendered chat without extra network roundtrips
+                        if (chatsList) {
+                            chatsList.querySelectorAll('.sidebar__chat-item').forEach(el => {
+                                el.classList.toggle('sidebar__chat-item--active', el.getAttribute('data-id') === fullChat.id);
+                            });
+                        }
                     } catch (err) {
+                        currentChatId = prevChatId;
+                        if (chatsList) {
+                            chatsList.querySelectorAll('.sidebar__chat-item').forEach(el => {
+                                el.classList.toggle('sidebar__chat-item--active', el.getAttribute('data-id') === prevChatId);
+                            });
+                        }
                         handleApiError(err);
                     }
                 });

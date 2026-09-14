@@ -6302,6 +6302,26 @@ body.modal-is-open .sidebar__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.fallback-drawer__link {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: #64748b;
+    text-decoration: none;
+    opacity: 0.75;
+    transition: color 0.15s ease, opacity 0.15s ease;
+    cursor: pointer;
+    line-height: 1;
+    user-select: none;
+    letter-spacing: 0.015em;
+}
+
+.fallback-drawer__link:hover {
+    opacity: 1;
+    color: #94a3b8;
+    text-decoration: underline;
 }
 
 .fallback-drawer__title {
@@ -6378,7 +6398,10 @@ body.modal-is-open .sidebar__header {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.35rem 0.85rem;
+    gap: 0.35rem;
+    min-width: 136px;
+    height: 32px;
+    padding: 0 0.85rem;
     background: linear-gradient(135deg, #FF1A35 0%, #C40026 100%);
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 6px;
@@ -6402,6 +6425,19 @@ body.modal-is-open .sidebar__header {
 
 .fallback-drawer__btn-primary:active {
     transform: translateY(0) scale(0.98);
+}
+
+.fallback-drawer__btn-primary:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.fallback-drawer__btn-primary .spinner {
+    width: 13px;
+    height: 13px;
+    border-width: 2px;
+    margin-right: 0.2rem;
 }
 
 /* ============================================
@@ -6516,6 +6552,37 @@ body.modal-is-open .sidebar__header {
     .sidebar-overlay.sidebar-overlay--visible {
         opacity: 1;
         pointer-events: auto;
+    }
+
+    /* Fast Mobile Touch & Tap Targets (0ms Touch Delay) */
+    .sidebar__chat-item,
+    .sidebar__deck-btn,
+    .sidebar__rail-btn,
+    .topbar__btn,
+    .topbar__toggle,
+    .library-modal__close-btn,
+    .library-row,
+    .modal-video-card,
+    .chat-empty-btn {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .sidebar__deck-btn {
+        height: 44px !important;
+        font-size: 0.84rem !important;
+    }
+
+    .sidebar__chat-item {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    .sidebar__chat-item:active,
+    .sidebar__deck-btn:active {
+        opacity: 0.75;
+        transform: scale(0.98);
+        transition: transform 0.05s ease, opacity 0.05s ease;
     }
 
     /* --- Topbar Mobile Layout --- */
