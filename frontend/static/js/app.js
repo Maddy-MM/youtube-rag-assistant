@@ -5,6 +5,37 @@
  * auto-scrolling, and all user interactions.
  */
 
+// ============================================
+// Prevent Pinch & Pinch-Out Zoom (Desktop Trackpad & Mobile Touch)
+// ============================================
+
+// 1. Disable desktop trackpad pinch-to-zoom (dispatches ctrlKey + wheel)
+document.addEventListener('wheel', (e) => {
+    if (e.ctrlKey) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// 2. Disable iOS Safari pinch-to-zoom gesture events
+document.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('gesturechange', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('gestureend', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
+// 3. Disable multi-touch pinch gestures on mobile touchscreens
+document.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // =============================

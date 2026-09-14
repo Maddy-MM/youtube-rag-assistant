@@ -60,6 +60,7 @@ html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    touch-action: pan-x pan-y;
 }
 
 body {
@@ -69,6 +70,7 @@ body {
     line-height: 1.6;
     overflow: hidden;
     height: 100vh;
+    touch-action: pan-x pan-y;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -3037,11 +3039,6 @@ input:-webkit-autofill:active {
     user-select: none;
 }
 
-.sidebar__chat-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.07);
-}
-
 /* Active Chat Item */
 .sidebar__chat-item--active {
     background: linear-gradient(90deg, rgba(255, 26, 53, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
@@ -3071,10 +3068,6 @@ input:-webkit-autofill:active {
     transition: color 0.18s ease;
 }
 
-.sidebar__chat-item:hover .sidebar__chat-item-icon {
-    color: #94a3b8;
-}
-
 .sidebar__chat-item--active .sidebar__chat-item-icon {
     color: #ff4d6d;
 }
@@ -3092,10 +3085,6 @@ input:-webkit-autofill:active {
     min-width: 0;
     text-align: left;
     transition: color 0.18s ease;
-}
-
-.sidebar__chat-item:hover .sidebar__chat-item-title {
-    color: #f1f5f9;
 }
 
 .sidebar__chat-item--active .sidebar__chat-item-title {
@@ -3121,14 +3110,30 @@ input:-webkit-autofill:active {
     transition: all 0.15s ease;
 }
 
-.sidebar__chat-item:hover .sidebar__chat-item-del {
-    opacity: 1;
-}
+/* Desktop Hover Interactions (strictly scoped to devices with mouse/pointer) */
+@media (hover: hover) and (pointer: fine) {
+    .sidebar__chat-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.07);
+    }
 
-.sidebar__chat-item-del:hover {
-    color: #ff4d6d;
-    background: rgba(255, 77, 109, 0.16);
-    transform: scale(1.08);
+    .sidebar__chat-item:hover .sidebar__chat-item-icon {
+        color: #94a3b8;
+    }
+
+    .sidebar__chat-item:hover .sidebar__chat-item-title {
+        color: #f1f5f9;
+    }
+
+    .sidebar__chat-item:hover .sidebar__chat-item-del {
+        opacity: 1;
+    }
+
+    .sidebar__chat-item-del:hover {
+        color: #ff4d6d;
+        background: rgba(255, 77, 109, 0.16);
+        transform: scale(1.08);
+    }
 }
 
 /* Polished Empty State for Chats */
@@ -6590,17 +6595,61 @@ body.modal-is-open .sidebar__header {
         -webkit-tap-highlight-color: transparent;
     }
 
+    /* Prevent mobile screen zoom on input focus (16px threshold) */
+    .console-input__field,
+    .console-input__field:focus,
+    .console-input__field:autofill,
+    .console-input__field:-webkit-autofill,
+    .console-input__field:-webkit-autofill:hover,
+    .console-input__field:-webkit-autofill:focus,
+    .console-input__field:-webkit-autofill:active,
+    .ingest-console__input,
+    .dock-textarea,
+    .fallback-drawer__textarea,
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+
     .sidebar__deck-btn {
         height: 44px !important;
         font-size: 0.84rem !important;
     }
 
+    /* Mobile Chat Item: Direct 1-Tap Select without Hover Emulation */
     .sidebar__chat-item {
         min-height: 44px;
         touch-action: manipulation;
     }
 
-    .sidebar__chat-item:active,
+    .sidebar__chat-item:hover {
+        background: transparent !important;
+        border-color: transparent !important;
+    }
+
+    .sidebar__chat-item--active,
+    .sidebar__chat-item--active:hover {
+        background: linear-gradient(90deg, rgba(255, 26, 53, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
+        border-color: rgba(255, 26, 53, 0.24) !important;
+    }
+
+    .sidebar__chat-item-del {
+        opacity: 0.65 !important;
+        min-width: 30px;
+        min-height: 30px;
+    }
+
+    .sidebar__chat-item-del:active {
+        color: #ff4d6d;
+        background: rgba(255, 77, 109, 0.2);
+    }
+
+    .sidebar__chat-item:active {
+        background: rgba(255, 255, 255, 0.04);
+        transform: none !important;
+    }
+
     .sidebar__deck-btn:active {
         opacity: 0.75;
         transform: scale(0.98);
