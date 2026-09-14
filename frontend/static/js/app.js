@@ -783,8 +783,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (chatInputBar) chatInputBar.style.display = 'block';
 
-        // Clear previous conversation bubbles
-        const existing = messagesContainer.querySelectorAll('.message');
+        // Clear previous conversation bubbles & placeholders
+        const existing = messagesContainer.querySelectorAll('.message, .chat-loading-placeholder');
         existing.forEach(el => el.remove());
 
         loadChats();
@@ -1713,13 +1713,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     messages = [];
                     if (welcomeState) welcomeState.style.display = 'none';
                     if (chatInputBar) chatInputBar.style.display = 'block';
-                    const existingMsg = messagesContainer.querySelectorAll('.message');
+                    const existingMsg = messagesContainer.querySelectorAll('.message, .chat-loading-placeholder');
                     existingMsg.forEach(el => el.remove());
-                    messagesContainer.innerHTML = `
-                        <div class="chat-loading-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:0.75rem;color:#94a3b8;font-size:0.85rem;">
-                            <div class="stream-spinner" style="width:22px;height:22px;border:2px solid rgba(255,255,255,0.15);border-top-color:#38bdf8;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-                            <span>Loading conversation...</span>
-                        </div>`;
+
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'chat-loading-placeholder';
+                    placeholder.innerHTML = `
+                        <div class="stream-spinner"></div>
+                        <span>Loading conversation...</span>`;
+                    messagesContainer.appendChild(placeholder);
 
                     try {
                         const fullChat = await API.getChat(targetChatId);
@@ -1762,6 +1764,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     } catch (err) {
                         currentChatId = prevChatId;
+                        messagesContainer.querySelectorAll('.chat-loading-placeholder').forEach(el => el.remove());
                         if (chatsList) {
                             chatsList.querySelectorAll('.sidebar__chat-item').forEach(el => {
                                 el.classList.toggle('sidebar__chat-item--active', el.getAttribute('data-id') === prevChatId);
@@ -1926,7 +1929,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMessages() {
-        // Clear everything except welcome
+        // Clear loading placeholders & existing messages
+        const placeholders = messagesContainer.querySelectorAll('.chat-loading-placeholder');
+        placeholders.forEach(el => el.remove());
+
         const existing = messagesContainer.querySelectorAll('.message');
         existing.forEach(el => el.remove());
 
